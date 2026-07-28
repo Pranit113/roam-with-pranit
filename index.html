@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <meta name="description" content="RoamWithPranit — Plan, Explore, Capture and Relive your adventures." />
+    <meta name="theme-color" content="#10B981" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <title>RoamWithPranit</title>
+    <script>
+      // Intercept window.alert for Google Maps billing/warning to keep UX clean
+      const originalAlert = window.alert;
+      window.alert = function (message) {
+        if (message && (message.indexOf('Google Maps') !== -1 || message.indexOf('billing') !== -1 || message.indexOf('development purposes') !== -1)) {
+          console.warn('Blocked Google Maps warning dialog:', message);
+          return;
+        }
+        originalAlert.apply(this, arguments);
+      };
+
+      window._mapsReady = false;
+      function _onGMapsLoad() {
+        window._mapsReady = true;
+        window.dispatchEvent(new CustomEvent('gmaps:ready'));
+      }
+    </script>
+    <script
+      async
+      defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCqJ1BuzuqtHdMB_yyaHGBsoHQIWtbbLms&libraries=places&callback=_onGMapsLoad"
+    ></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
