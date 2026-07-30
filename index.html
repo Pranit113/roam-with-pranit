@@ -9,28 +9,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <title>RoamWithPranit</title>
+    <!-- MapMyIndia (Mappls) Map SDK -->
+    <script src="https://apis.mappls.com/advancedmaps/api/lifbgrgdylewzefownzpslvqbdqdgtgdvtmk/map_sdk?v=3.0&layer=vector"></script>
+    <!-- MapMyIndia Places Plugin -->
+    <script src="https://apis.mappls.com/advancedmaps/api/lifbgrgdylewzefownzpslvqbdqdgtgdvtmk/map_sdk_plugins?v=3.0"></script>
     <script>
-      // Intercept window.alert for Google Maps billing/warning to keep UX clean
-      const originalAlert = window.alert;
-      window.alert = function (message) {
-        if (message && (message.indexOf('Google Maps') !== -1 || message.indexOf('billing') !== -1 || message.indexOf('development purposes') !== -1)) {
-          console.warn('Blocked Google Maps warning dialog:', message);
-          return;
-        }
-        originalAlert.apply(this, arguments);
-      };
-
-      window._mapsReady = false;
-      function _onGMapsLoad() {
-        window._mapsReady = true;
-        window.dispatchEvent(new CustomEvent('gmaps:ready'));
+      window._mapplsReady = false;
+      function _onMapplsLoad() {
+        window._mapplsReady = true;
+        window.dispatchEvent(new CustomEvent('mappls:ready'));
       }
+      // fallback if scripts already fired
+      window.addEventListener('load', function () {
+        if (!window._mapplsReady && window.mappls) {
+          window._mapplsReady = true;
+          window.dispatchEvent(new CustomEvent('mappls:ready'));
+        }
+      });
     </script>
-    <script
-      async
-      defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCqJ1BuzuqtHdMB_yyaHGBsoHQIWtbbLms&libraries=places&callback=_onGMapsLoad"
-    ></script>
   </head>
   <body>
     <div id="root"></div>

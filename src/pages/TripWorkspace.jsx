@@ -65,38 +65,38 @@ function ItineraryTab({ trip, refresh }) {
   const [actCost,  setActCost]  = useState('');
   const [actNote,  setActNote]  = useState('');
 
-  const autocompleteInstRef = useRef(null);
+  const [placeSuggestions, setPlaceSuggestions] = useState([]);
+  const [showPlaceSugg,    setShowPlaceSugg]    = useState(false);
+  const placeDebounceRef = useRef(null);
 
-  // Attach autocomplete when sheet is opened
-  useEffect(() => {
-    if (!actSheet || !window.google || !window.google.maps || !window.google.maps.places) return;
+  const MAPPLS_KEY = 'lifbgrgdylewzefownzpslvqbdqdgtgdvtmk';
 
-    const timer = setTimeout(() => {
-      const input = document.getElementById('activity-place-autocomplete');
-      if (!input) return;
+  async function fetchPlaceSuggestions(q) {
+    if (!q || q.length < 2) { setPlaceSuggestions([]); return; }
+    try {
+      const res = await fetch(
+        `https://atlas.mappls.com/api/places/search/json?query=${encodeURIComponent(q)}&region=IND&access_token=${MAPPLS_KEY}`
+      );
+      const data = await res.json();
+      const results = data?.suggestedLocations || data?.copResults || [];
+      setPlaceSuggestions(results.slice(0, 5));
+      setShowPlaceSugg(true);
+    } catch {
+      setPlaceSuggestions([]);
+    }
+  }
 
-      const autocomplete = new window.google.maps.places.Autocomplete(input, {
-        fields: ['name', 'formatted_address', 'geometry'],
-      });
+  function handlePlaceInput(val) {
+    setActPlace(val);
+    clearTimeout(placeDebounceRef.current);
+    placeDebounceRef.current = setTimeout(() => fetchPlaceSuggestions(val), 350);
+  }
 
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place.name || place.formatted_address) {
-          setActPlace(place.name || place.formatted_address || '');
-        }
-      });
-
-      autocompleteInstRef.current = autocomplete;
-    }, 300);
-
-    return () => {
-      clearTimeout(timer);
-      if (autocompleteInstRef.current) {
-        window.google.maps.event.clearInstanceListeners(autocompleteInstRef.current);
-        autocompleteInstRef.current = null;
-      }
-    };
-  }, [actSheet]);
+  function selectPlaceSuggestion(s) {
+    setActPlace(s.placeName || s.placeAddress || '');
+    setPlaceSuggestions([]);
+    setShowPlaceSugg(false);
+  }
 
   const atype = k => ACT_TYPES.find(t => t.key === k) || ACT_TYPES[2];
 
@@ -248,7 +248,44 @@ function ItineraryTab({ trip, refresh }) {
             <input className="input" placeholder="e.g. Lunch at Britto's" value={actTitle} onChange={e => setActTitle(e.target.value)} /></div>
         </div>
         <div className="field"><div className="field-label">Place / Location</div>
-          <input id="activity-place-autocomplete" className="input" placeholder="e.g. Baga Beach, North Goa" value={actPlace} onChange={e => setActPlace(e.target.value)} /></div>
+          <div style={{ position: 'relative' }}>
+            <input
+              id="activity-place-input"
+              className="input"
+              placeholder="e.g. Baga Beach, North Goa"
+              value={actPlace}
+              onChange={e => handlePlaceInput(e.target.value)}
+              onFocus={() => placeSuggestions.length > 0 && setShowPlaceSugg(true)}
+              onBlur={() => setTimeout(() => setShowPlaceSugg(false), 200)}
+              autoComplete="off"
+            />
+            {showPlaceSugg && placeSuggestions.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0,
+                background: 'white', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                border: '1px solid #E2E8F0', zIndex: 9999, overflow: 'hidden', marginTop: 4,
+              }}>
+                {placeSuggestions.map((s, i) => (
+                  <div key={i}
+                    onMouseDown={() => selectPlaceSuggestion(s)}
+                    style={{
+                      padding: '10px 14px', cursor: 'pointer', fontSize: 13,
+                      borderBottom: i < placeSuggestions.length - 1 ? '1px solid #F1F5F9' : 'none',
+                      color: '#0F172A', fontWeight: 500,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                  >
+                    📍 {s.placeName || s.placeAddress}
+                    {s.placeAddress && s.placeName !== s.placeAddress && (
+                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{s.placeAddress}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         <div className="field"><div className="field-label">Cost ({trip.currency})</div>
           <input className="input" type="number" placeholder="0" value={actCost} onChange={e => setActCost(e.target.value)} /></div>
         <div className="field"><div className="field-label">Notes</div>
