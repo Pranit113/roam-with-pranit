@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { searchPlaces } from '../utils/mappls';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, ChevronDown, ChevronUp, MoreVertical } from 'lucide-react';
@@ -12,6 +11,7 @@ import {
 import { uploadPhoto, deletePhotoFromStorage } from '../utils/supabase';
 import MapView from '../components/MapView';
 import BottomSheet from '../components/BottomSheet';
+import PlaceAutocompleteInput from '../components/PlaceAutocompleteInput';
 
 /* ── activity types ──────────────────────────────────────────── */
 const ACT_TYPES = [
@@ -245,44 +245,22 @@ function ItineraryTab({ trip, refresh }) {
           <div className="field"><div className="field-label">Activity Name *</div>
             <input className="input" placeholder="e.g. Lunch at Britto's" value={actTitle} onChange={e => setActTitle(e.target.value)} /></div>
         </div>
-        <div className="field"><div className="field-label">Place / Location</div>
-          <div style={{ position: 'relative' }}>
-            <input
-              id="activity-place-input"
-              className="input"
-              placeholder="e.g. Baga Beach, North Goa"
-              value={actPlace}
-              onChange={e => handlePlaceInput(e.target.value)}
-              onFocus={() => placeSuggestions.length > 0 && setShowPlaceSugg(true)}
-              onBlur={() => setTimeout(() => setShowPlaceSugg(false), 200)}
-              autoComplete="off"
-            />
-            {showPlaceSugg && placeSuggestions.length > 0 && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 0, right: 0,
-                background: 'white', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                border: '1px solid #E2E8F0', zIndex: 9999, overflow: 'hidden', marginTop: 4,
-              }}>
-                {placeSuggestions.map((s, i) => (
-                  <div key={i}
-                    onMouseDown={() => selectPlaceSuggestion(s)}
-                    style={{
-                      padding: '10px 14px', cursor: 'pointer', fontSize: 13,
-                      borderBottom: i < placeSuggestions.length - 1 ? '1px solid #F1F5F9' : 'none',
-                      color: '#0F172A', fontWeight: 500,
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
-                  >
-                    📍 {s.placeName || s.placeAddress}
-                    {s.placeAddress && s.placeName !== s.placeAddress && (
-                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{s.placeAddress}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="field">
+          <div className="field-label">Place / Location</div>
+          <PlaceAutocompleteInput
+            placeholder="e.g. Baga Beach, Triangle Hotel, Fort Aguada…"
+            value={actPlace}
+            onChange={val => {
+              setActPlace(val);
+              setActLat(null);
+              setActLng(null);
+            }}
+            onSelectLocation={loc => {
+              setActPlace(loc.name);
+              setActLat(loc.lat);
+              setActLng(loc.lng);
+            }}
+          />
         </div>
         <div className="field"><div className="field-label">Cost ({trip.currency})</div>
           <input className="input" type="number" placeholder="0" value={actCost} onChange={e => setActCost(e.target.value)} /></div>

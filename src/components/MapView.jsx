@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Search, MapPin, X, Trash2, Navigation } from 'lucide-react';
 import { mapplsObj, mapplsPlugin, initMappls, searchPlaces } from '../utils/mappls';
 import { addPin, deletePin, getTrip } from '../utils/storage';
+import PlaceAutocompleteInput from './PlaceAutocompleteInput';
 
 const CAT = {
   landmark: { label: 'Landmark', color: '#10B981', bg: '#ECFDF5' },
@@ -249,40 +250,22 @@ export default function MapView({ tripId, mapCenter }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={17} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', zIndex: 1, pointerEvents: 'none' }} />
-            <input
-              type="text"
+            <PlaceAutocompleteInput
               value={query}
-              onChange={handleQueryChange}
-              onFocus={() => suggestions.length > 0 && setShowSugg(true)}
-              onBlur={() => setTimeout(() => setShowSugg(false), 200)}
+              onChange={val => setQuery(val)}
+              onSelectLocation={loc => {
+                setQuery(loc.name);
+                if (loc.lat && loc.lng) {
+                  if (mapRef.current) {
+                    try { mapRef.current.setCenter([loc.lat, loc.lng]); mapRef.current.setZoom(15); } catch {}
+                  }
+                  setPending({ lat: loc.lat, lng: loc.lng, name: loc.name, address: loc.address });
+                  setNote('');
+                }
+              }}
               placeholder="Search places in India…"
-              className="input"
               style={{ paddingLeft: 40 }}
             />
-            {/* Suggestions */}
-            {showSugg && suggestions.length > 0 && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 0, right: 0,
-                background: 'white', borderRadius: 12, boxShadow: '0 10px 36px rgba(0,0,0,0.16)',
-                border: '1px solid #E2E8F0', zIndex: 9999, overflow: 'hidden', marginTop: 4,
-              }}>
-                {suggestions.map((s, i) => (
-                  <div key={i} onMouseDown={() => selectSuggestion(s)}
-                    style={{ padding: '11px 14px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid #F1F5F9' : 'none', display: 'flex', gap: 10, alignItems: 'flex-start' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
-                  >
-                    <MapPin size={14} color="#10B981" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{s.placeName || s.placeAddress}</div>
-                      {s.placeAddress && s.placeName !== s.placeAddress && (
-                        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{s.placeAddress}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Current location button */}

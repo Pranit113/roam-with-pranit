@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Calendar, MapPin, Trash2, ChevronRight } from 'lucide-react';
 import { getTrips, createTrip, deleteTrip } from '../utils/storage';
 import BottomSheet from '../components/BottomSheet';
+import PlaceAutocompleteInput from '../components/PlaceAutocompleteInput';
 
 const EMOJIS  = ['✈️','🏖️','🏔️','🌸','🗼','🏝️','🌴','🚗','🏕️','🌊','🗺️','🎒','🌅','🏯','🚢','🚂','🎿','🤿'];
 const COVERS  = [
@@ -241,7 +242,25 @@ export default function Trips() {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
           <div className="field">
             <div className="field-label">Destination</div>
-            <input className="input" placeholder="e.g. Goa" value={dest} onChange={e => setDest(e.target.value)} />
+            <PlaceAutocompleteInput
+              placeholder="e.g. Goa, Manali, Jaipur…"
+              value={dest}
+              onChange={val => setDest(val)}
+              onSelectLocation={loc => {
+                setDest(loc.name);
+                if (loc.address) {
+                  const addrLower = loc.address.toLowerCase();
+                  if (addrLower.includes('india') && !country) setCountry('India');
+                  // Check if any state is in address
+                  INDIAN_STATES.forEach(st => {
+                    if (addrLower.includes(st.toLowerCase())) {
+                      setStateOfIndia(st);
+                      setCountry('India');
+                    }
+                  });
+                }
+              }}
+            />
           </div>
           <div className="field">
             <div className="field-label">Country</div>
