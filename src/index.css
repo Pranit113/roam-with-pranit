@@ -392,7 +392,7 @@ select.input{
   position:fixed;bottom:0;left:50%;transform:translateX(-50%);
   width:100%;max-width:480px;z-index:201;
   background:var(--surface);border-radius:24px 24px 0 0;
-  max-height:92vh;overflow-y:auto;
+  max-height:92vh;overflow-y:auto;overflow-x:visible;
   padding:0 0 max(24px,env(safe-area-inset-bottom));
 }
 .sheet-handle{width:40px;height:4px;border-radius:99px;background:var(--g200);margin:12px auto 20px}
@@ -400,7 +400,7 @@ select.input{
 .sheet-title{font-size:1.125rem;font-weight:800;color:var(--t1)}
 .sheet-close{width:32px;height:32px;border-radius:var(--r-full);background:var(--g100);color:var(--t2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:none;transition:background 150ms}
 .sheet-close:hover{background:var(--g200)}
-.sheet-body{padding:0 24px;display:flex;flex-direction:column;gap:18px}
+.sheet-body{padding:0 24px;display:flex;flex-direction:column;gap:18px;position:relative;overflow:visible}
 
 /* ── Instagram Highlight Ring ───────────────────────────────────────── */
 .hl-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;flex-shrink:0}

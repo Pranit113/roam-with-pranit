@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Search, MapPin, X, Trash2, Navigation } from 'lucide-react';
-import { mapplsObj, mapplsPlugin, initMappls, searchPlaces } from '../utils/mappls';
 import { addPin, deletePin, getTrip } from '../utils/storage';
 import PlaceAutocompleteInput from './PlaceAutocompleteInput';
 
@@ -16,28 +17,23 @@ const CAT = {
   current:  { label: 'You',      color: '#EF4444', bg: '#FEF2F2' },
 };
 
-// Distinct colours for day polylines
 const DAY_COLORS = [
   '#10B981','#6366F1','#F59E0B','#EC4899','#0EA5E9',
   '#F97316','#8B5CF6','#84CC16','#EF4444','#14B8A6',
 ];
 
 export default function MapView({ tripId, mapCenter }) {
-  const mapRef     = useRef(null);
-  const markersRef = useRef({});
-  const polylinesRef = useRef([]);
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef  = useRef(null);
+  const markersRef      = useRef({});
+  const polylinesRef    = useRef([]);
 
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [pins,        setPins]        = useState([]);
-  const [pending,     setPending]     = useState(null);
-  const [selCat,      setSelCat]      = useState('landmark');
-  const [note,        setNote]        = useState('');
-  const [query,       setQuery]       = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSugg,    setShowSugg]    = useState(false);
-  const [loadError,   setLoadError]   = useState(null);
-  const [locating,    setLocating]    = useState(false);
-  const debounceRef = useRef(null);
+  const [pins,      setPins]      = useState([]);
+  const [pending,   setPending]   = useState(null);
+  const [selCat,    setSelCat]    = useState('landmark');
+  const [note,      setNote]      = useState('');
+  const [query,     setQuery]     = useState('');
+  const [locating,  setLocating]  = useState(false);
 
   const loadPins = useCallback(() => {
     const trip = getTrip(tripId);
@@ -46,209 +42,211 @@ export default function MapView({ tripId, mapCenter }) {
 
   useEffect(() => { loadPins(); }, [loadPins]);
 
-  /* ── Init map ── */
+  /* Helper to create colored custom SVG pin icon for Leaflet */
+  function createCustomIcon(color) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 48" width="32" height="42">
+      <path d="M18 0C8.06 0 0 8.059 0 18c0 13.5 18 30 18 30S36 31.5 36 18C36 8.059 27.94 0 18 0z" fill="${color}" stroke="#ffffff" stroke-width="2"/>
+      <circle cx="18" cy="18" r="7" fill="#ffffff"/>
+      <circle cx="18" cy="18" r="4" fill="${color}"/>
+    </svg>`;
+    return L.divIcon({
+      className: 'custom-leaflet-pin',
+      html: svg,
+      iconSize: [32, 42],
+      iconAnchor: [16, 42],
+      popupAnchor: [0, -38],
+    });
+  }
+
+  /* ── Initialize Leaflet Map ── */
   useEffect(() => {
-    initMappls(() => {
-      try {
-        const center = mapCenter
-          ? [mapCenter.lat, mapCenter.lng]
-          : [20.5937, 78.9629];
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-        const newMap = mapplsObj.Map({
-          id: 'mappls-map-el',
-          properties: {
-            center,
-            zoom: mapCenter ? 11 : 5,
-            zoomControl: true,
-          },
-        });
+    const center = mapCenter ? [mapCenter.lat, mapCenter.lng] : [20.5937, 78.9629]; // Default India center
+    const zoom   = mapCenter ? 12 : 5;
 
-        newMap.on('load', () => {
-          mapRef.current = newMap;
-          setIsMapLoaded(true);
-
-          const trip = getTrip(tripId);
-          // Draw pinned markers
-          (trip?.pins || []).forEach(p => addMarkerToMap(newMap, p));
-          // Draw day-wise travel path
-          drawDayPaths(newMap, trip);
-        });
-      } catch (err) {
-        setLoadError('Map failed to load: ' + err.message);
-      }
+    const map = L.map(mapContainerRef.current, {
+      center,
+      zoom,
+      zoomControl: true,
     });
 
+    // High quality Voyager tile layer by CartoDB (clean, modern map styling)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    mapInstanceRef.current = map;
+
+    // Click map to drop pin directly
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      setPending({
+        lat,
+        lng,
+        name: `Pinned Location`,
+        address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      });
+      setNote('');
+    });
+
+    // Render initial trip pins & paths
+    const trip = getTrip(tripId);
+    renderPinsAndPaths(map, trip);
+
     return () => {
-      if (mapRef.current) {
-        try { mapRef.current.remove(); } catch {}
-        mapRef.current = null;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
-  /* ── Draw day-wise travel polylines ── */
-  function drawDayPaths(map, trip) {
-    if (!trip?.days?.length) return;
+  /* Render all pins & day-wise travel polylines */
+  function renderPinsAndPaths(map, trip) {
+    if (!map) return;
 
-    // Remove old polylines
-    polylinesRef.current.forEach(pl => { try { pl.remove(); } catch {} });
+    // Clear old markers & polylines
+    Object.values(markersRef.current).forEach(m => m.remove());
+    markersRef.current = {};
+
+    polylinesRef.current.forEach(p => p.remove());
     polylinesRef.current = [];
 
-    trip.days.forEach((day, dayIdx) => {
-      const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
-      const coords = (day.activities || [])
-        .filter(a => a.lat && a.lng)
-        .map(a => ({ lat: a.lat, lng: a.lng }));
-
-      if (coords.length < 2) return;
-
-      try {
-        const polyline = mapplsObj.Polyline({
-          map,
-          path: coords,
-          strokeColor: color,
-          strokeOpacity: 0.85,
-          strokeWeight: 4,
-        });
-        polylinesRef.current.push(polyline);
-
-        // Label marker for each activity
-        coords.forEach((coord, i) => {
-          const act = (day.activities || []).filter(a => a.lat && a.lng)[i];
-          if (!act) return;
-          mapplsObj.Marker({
-            map,
-            position: { lat: coord.lat, lng: coord.lng },
-            popupHtml: `<div style="font-family:'Outfit',sans-serif;padding:6px 10px;min-width:140px">
-              <div style="font-size:11px;font-weight:700;color:${color};margin-bottom:2px">Day ${day.day}</div>
-              <b style="color:#0F172A;font-size:13px">${act.title}</b>
-              ${act.place ? `<div style="color:#64748B;font-size:11px;margin-top:2px">📍 ${act.place}</div>` : ''}
-              ${act.time  ? `<div style="color:#94A3B8;font-size:11px">⏰ ${act.time}</div>` : ''}
-            </div>`,
-            popupOptions: { openPopup: false },
-          });
-        });
-      } catch {}
-    });
-  }
-
-  /* ── Add a marker ── */
-  function addMarkerToMap(map, pin) {
-    try {
-      const marker = mapplsObj.Marker({
-        map,
-        position: { lat: pin.lat, lng: pin.lng },
-        draggable: false,
-        popupHtml: `<div style="font-family:'Outfit',sans-serif;padding:6px 8px;min-width:150px">
-          <b style="color:#0F172A;font-size:14px">${pin.name}</b>
-          <div style="color:#64748B;font-size:12px;margin-top:2px">${CAT[pin.category]?.label || pin.category}</div>
-          ${pin.note ? `<div style="color:#334155;font-size:12px;margin-top:4px;font-style:italic">"${pin.note}"</div>` : ''}
-        </div>`,
-        popupOptions: { openPopup: false },
-      });
+    // 1. Draw Pinned Places
+    (trip?.pins || []).forEach(pin => {
+      const color = CAT[pin.category]?.color || '#10B981';
+      const marker = L.marker([pin.lat, pin.lng], { icon: createCustomIcon(color) }).addTo(map);
+      marker.bindPopup(`<div style="font-family:'Outfit',sans-serif;padding:4px 6px;min-width:140px">
+        <b style="color:#0F172A;font-size:14px;display:block">${pin.name}</b>
+        <span style="color:#64748B;font-size:12px;margin-top:2px;display:block">${CAT[pin.category]?.label || pin.category}</span>
+        ${pin.note ? `<div style="color:#334155;font-size:12px;margin-top:4px;font-style:italic">"${pin.note}"</div>` : ''}
+      </div>`);
       markersRef.current[pin.id] = marker;
-    } catch {}
-  }
+    });
 
-  /* ── Search places ── */
-  async function doSearch(q) {
-    if (!q || q.length < 2) { setSuggestions([]); return; }
-    const results = await searchPlaces(q);
-    setSuggestions(results.slice(0, 6));
-    if (results.length) setShowSugg(true);
-  }
+    // 2. Draw Day-Wise Travel Routes (Polylines)
+    if (trip?.days?.length) {
+      trip.days.forEach((day, dayIdx) => {
+        const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+        const coords = (day.activities || [])
+          .filter(a => a.lat && a.lng)
+          .map(a => [a.lat, a.lng]);
 
-  function handleQueryChange(e) {
-    const val = e.target.value;
-    setQuery(val);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(val), 350);
-  }
+        if (coords.length > 0) {
+          // Add numbered activity markers on map
+          (day.activities || []).forEach((act, actIdx) => {
+            if (!act.lat || !act.lng) return;
+            const actMarker = L.circleMarker([act.lat, act.lng], {
+              radius: 9,
+              fillColor: color,
+              color: '#FFFFFF',
+              weight: 2,
+              fillOpacity: 0.9,
+            }).addTo(map);
 
-  function selectSuggestion(s) {
-    const lat = parseFloat(s.latitude);
-    const lng = parseFloat(s.longitude);
-    const name = s.placeName || s.placeAddress || query;
-    const address = s.placeAddress || '';
-    if (!lat || !lng) return;
+            actMarker.bindPopup(`<div style="font-family:'Outfit',sans-serif;padding:4px 6px;min-width:140px">
+              <div style="font-size:11px;font-weight:700;color:${color}">Day ${day.day} • Activity ${actIdx + 1}</div>
+              <b style="color:#0F172A;font-size:13px;display:block;margin-top:2px">${act.title}</b>
+              ${act.place ? `<div style="color:#64748B;font-size:11px">📍 ${act.place}</div>` : ''}
+              ${act.time ? `<div style="color:#94A3B8;font-size:11px">⏰ ${act.time}</div>` : ''}
+            </div>`);
+          });
 
-    if (mapRef.current) {
-      try { mapRef.current.setCenter([lat, lng]); mapRef.current.setZoom(15); } catch {}
+          // Connect points with smooth route line if >= 2 points
+          if (coords.length >= 2) {
+            const polyline = L.polyline(coords, {
+              color,
+              weight: 4,
+              opacity: 0.85,
+              dashArray: '6, 6',
+            }).addTo(map);
+            polylinesRef.current.push(polyline);
+          }
+        }
+      });
     }
-
-    setPending({ lat, lng, name, address });
-    setQuery(name);
-    setSuggestions([]);
-    setShowSugg(false);
-    setNote('');
   }
 
-  /* ── Current location ── */
+  // Re-render markers/paths when pins change
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      const trip = getTrip(tripId);
+      renderPinsAndPaths(mapInstanceRef.current, trip);
+    }
+  }, [pins, tripId]);
+
+  /* Get Current Location */
   function pinMyLocation() {
-    if (!navigator.geolocation) return alert('Geolocation not supported');
+    if (!navigator.geolocation) return alert('Geolocation not supported on this browser');
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       pos => {
         setLocating(false);
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        const name = 'My Location';
 
-        if (mapRef.current) {
-          try { mapRef.current.setCenter([lat, lng]); mapRef.current.setZoom(16); } catch {}
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.flyTo([lat, lng], 15, { animate: true });
         }
-        setPending({ lat, lng, name, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+
+        setPending({
+          lat,
+          lng,
+          name: 'My Location',
+          address: `Current position (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        });
         setSelCat('current');
-        setQuery(name);
-        setSuggestions([]);
-        setNote('');
+        setQuery('My Location');
       },
-      () => { setLocating(false); alert('Could not get your location. Please allow location access.'); },
+      () => {
+        setLocating(false);
+        alert('Could not detect your current location. Please allow location permissions.');
+      },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   }
 
-  /* ── Confirm pin ── */
+  /* Confirm Pin */
   function confirmPin() {
-    if (!pending || !mapRef.current) return;
+    if (!pending) return;
     const updated = addPin(tripId, {
-      lat: pending.lat, lng: pending.lng,
-      name: pending.name, category: selCat, note,
+      lat: pending.lat,
+      lng: pending.lng,
+      name: pending.name,
+      category: selCat,
+      note,
     });
-    const newPin = updated.pins[updated.pins.length - 1];
-    addMarkerToMap(mapRef.current, newPin);
     loadPins();
     setPending(null);
     setNote('');
     setQuery('');
   }
 
-  /* ── Delete pin ── */
+  /* Remove Pin */
   function removePinHandler(pinId) {
-    if (markersRef.current[pinId]) {
-      try { markersRef.current[pinId].remove(); } catch {}
-      delete markersRef.current[pinId];
-    }
     deletePin(tripId, pinId);
     loadPins();
   }
 
-  /* ── Pan to pin ── */
+  /* Pan to Pin */
   function panToPin(pin) {
-    if (!mapRef.current) return;
-    try {
-      mapRef.current.setCenter([pin.lat, pin.lng]);
-      mapRef.current.setZoom(15);
-    } catch {}
+    if (!mapInstanceRef.current) return;
+    mapInstanceRef.current.flyTo([pin.lat, pin.lng], 15, { animate: true });
+    if (markersRef.current[pin.id]) {
+      markersRef.current[pin.id].openPopup();
+    }
   }
 
   return (
     <div className="map-outer">
-      {/* Search + Locate */}
+      {/* Search & Location Controls */}
       <div className="map-search-bar">
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ position: 'relative', flex: 1 }}>
+          <div style={{ flex: 1, position: 'relative' }}>
             <Search size={17} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', zIndex: 1, pointerEvents: 'none' }} />
             <PlaceAutocompleteInput
               value={query}
@@ -256,28 +254,35 @@ export default function MapView({ tripId, mapCenter }) {
               onSelectLocation={loc => {
                 setQuery(loc.name);
                 if (loc.lat && loc.lng) {
-                  if (mapRef.current) {
-                    try { mapRef.current.setCenter([loc.lat, loc.lng]); mapRef.current.setZoom(15); } catch {}
+                  if (mapInstanceRef.current) {
+                    mapInstanceRef.current.flyTo([loc.lat, loc.lng], 15, { animate: true });
                   }
                   setPending({ lat: loc.lat, lng: loc.lng, name: loc.name, address: loc.address });
                   setNote('');
                 }
               }}
-              placeholder="Search places in India…"
+              placeholder="Search places in India (e.g. Baga Beach, Triangle Hotel, Majale)…"
               style={{ paddingLeft: 40 }}
             />
           </div>
 
-          {/* Current location button */}
           <button
             onClick={pinMyLocation}
             disabled={locating}
-            title="Pin my current location"
+            title="Pin my current GPS location"
             style={{
-              width: 44, height: 44, borderRadius: 12, border: '1.5px solid #E2E8F0',
-              background: locating ? '#F1F5F9' : 'white', cursor: locating ? 'wait' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              color: locating ? '#94A3B8' : '#10B981', transition: 'all 200ms',
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              border: '1.5px solid #E2E8F0',
+              background: locating ? '#F1F5F9' : 'white',
+              cursor: locating ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              color: locating ? '#94A3B8' : '#10B981',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
             }}
           >
             {locating
@@ -287,13 +292,13 @@ export default function MapView({ tripId, mapCenter }) {
           </button>
         </div>
 
-        {/* Confirm card */}
+        {/* Pending Pin Confirmation Card */}
         {pending && (
-          <div className="pending-place-card">
+          <div className="pending-place-card" style={{ marginTop: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 14, color: '#0F172A' }}>{pending.name}</div>
-                {pending.address && <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>{pending.address}</div>}
+                {pending.address && <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{pending.address}</div>}
               </div>
               <button onClick={() => setPending(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
             </div>
@@ -307,40 +312,41 @@ export default function MapView({ tripId, mapCenter }) {
             </div>
             <input type="text" placeholder="Add a note (optional)…" value={note} onChange={e => setNote(e.target.value)} className="input input-sm" style={{ marginBottom: 10 }} />
             <button className="btn btn-md btn-primary btn-full" onClick={confirmPin}>
-              <MapPin size={16} /> Drop Pin
+              <MapPin size={16} /> Drop Pin On Map
             </button>
           </div>
         )}
       </div>
 
-      {/* Loading */}
-      {!isMapLoaded && !loadError && (
-        <div style={{ height: 460, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#94A3B8', background: '#F8FAFC', borderRadius: 16 }}>
-          <div style={{ fontSize: 48 }}>🗺️</div>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Loading MapMyIndia…</div>
-        </div>
-      )}
-
-      {/* Map container */}
+      {/* Interactive Map element */}
       <div
-        id="mappls-map-el"
-        style={{ width: '100%', height: 460, display: isMapLoaded ? 'block' : 'none', borderRadius: 16, overflow: 'hidden' }}
+        ref={mapContainerRef}
+        style={{
+          width: '100%',
+          height: 480,
+          borderRadius: 18,
+          overflow: 'hidden',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          border: '1px solid var(--border)',
+          zIndex: 1,
+        }}
       />
 
-      {/* Day path legend */}
-      {isMapLoaded && (() => {
+      {/* Day-Wise Route Legend */}
+      {(() => {
         const trip = getTrip(tripId);
         const daysWithLoc = (trip?.days || []).filter(d =>
           (d.activities || []).some(a => a.lat && a.lng)
         );
         if (!daysWithLoc.length) return null;
         return (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '10px 4px 0' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '12px 6px 0', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Travel Routes:</span>
             {daysWithLoc.map((day, i) => {
               const color = DAY_COLORS[i % DAY_COLORS.length];
               return (
-                <div key={day.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#334155' }}>
-                  <span style={{ width: 20, height: 4, borderRadius: 4, background: color, display: 'inline-block' }} />
+                <div key={day.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#334155' }}>
+                  <span style={{ width: 18, height: 4, borderRadius: 4, background: color, display: 'inline-block' }} />
                   Day {day.day}
                 </div>
               );
@@ -349,11 +355,11 @@ export default function MapView({ tripId, mapCenter }) {
         );
       })()}
 
-      {/* Pins list */}
+      {/* Pinned Places List */}
       {pins.length > 0 && (
         <div className="map-pins-list">
           <div style={{ padding: '10px 16px 6px', fontSize: '0.72rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            {pins.length} pinned places
+            {pins.length} Pinned Places
           </div>
           {pins.map(pin => {
             const { color, label, bg } = CAT[pin.category] || CAT.landmark;
