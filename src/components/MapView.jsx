@@ -35,7 +35,7 @@ export default function MapView({ tripId, mapCenter }) {
   const [note,       setNote]       = useState('');
   const [query,      setQuery]      = useState('');
   const [locating,   setLocating]   = useState(false);
-  const [mapStyle,   setMapStyle]   = useState('google-roadmap'); // google-roadmap | google-satellite | voyager
+  const [mapStyle, setMapStyle] = useState('esri-topo'); // Default to Esri Topo Map
 
   const loadPins = useCallback(() => {
     const trip = getTrip(tripId);
@@ -62,13 +62,28 @@ export default function MapView({ tripId, mapCenter }) {
 
   // Map Tile Layers Configuration
   function getTileUrl(style) {
+    if (style === 'esri-topo') {
+      return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'; // Esri Topo Map (Rich Detailed)
+    }
+    if (style === 'osm-standard') {
+      return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'; // OpenStreetMap Standard
+    }
+    if (style === 'carto-positron') {
+      return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'; // Clean Light Minimal
+    }
+    if (style === 'carto-dark') {
+      return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'; // Dark Mode Glow
+    }
+    if (style === 'esri-sat') {
+      return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'; // Esri High-Res Satellite
+    }
     if (style === 'google-satellite') {
-      return 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Google Satellite Hybrid (labels + satellite)
+      return 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Google Satellite Hybrid
     }
     if (style === 'voyager') {
       return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
     }
-    return 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'; // Google Roadmap (Default)
+    return 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'; // Google Roadmap
   }
 
   /* ── Initialize Leaflet Map ── */
@@ -299,9 +314,12 @@ export default function MapView({ tripId, mapCenter }) {
             }}
             title="Switch map layer"
           >
+            <option value="esri-topo">🏔️ Esri Topo Map (Default)</option>
+            <option value="osm-standard">🍃 OpenStreetMap Detailed</option>
+            <option value="carto-positron">🏙️ Clean Light Theme</option>
+            <option value="carto-dark">🌌 Dark Mode Glow</option>
             <option value="google-roadmap">🗺️ Google Maps</option>
-            <option value="google-satellite">🛰️ Satellite</option>
-            <option value="voyager">🧭 Clean Vector</option>
+            <option value="esri-sat">🛰️ High-Res Satellite</option>
           </select>
 
           {/* GPS Location Button */}
