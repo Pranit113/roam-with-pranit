@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { mappls_plugin } from 'mappls-web-maps';
-const _mapplsPlugin = new mappls_plugin();
+import { searchPlaces } from '../utils/mappls';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, ChevronDown, ChevronUp, MoreVertical } from 'lucide-react';
@@ -64,6 +63,8 @@ function ItineraryTab({ trip, refresh }) {
   const [actType,  setActType]  = useState('food');
   const [actTitle, setActTitle] = useState('');
   const [actPlace, setActPlace] = useState('');
+  const [actLat,   setActLat]   = useState(null);
+  const [actLng,   setActLng]   = useState(null);
   const [actCost,  setActCost]  = useState('');
   const [actNote,  setActNote]  = useState('');
 
@@ -71,33 +72,24 @@ function ItineraryTab({ trip, refresh }) {
   const [showPlaceSugg,    setShowPlaceSugg]    = useState(false);
   const placeDebounceRef = useRef(null);
 
-  function fetchPlaceSuggestions(q) {
+  async function fetchPlaceSuggestions(q) {
     if (!q || q.length < 2) { setPlaceSuggestions([]); return; }
-    try {
-      _mapplsPlugin.search({
-        keyword: q,
-        callback: function(data) {
-          if (data && data.suggestedLocations && data.suggestedLocations.length) {
-            setPlaceSuggestions(data.suggestedLocations.slice(0, 5));
-            setShowPlaceSugg(true);
-          } else {
-            setPlaceSuggestions([]);
-          }
-        }
-      });
-    } catch {
-      setPlaceSuggestions([]);
-    }
+    const results = await searchPlaces(q);
+    setPlaceSuggestions(results.slice(0, 6));
+    if (results.length) setShowPlaceSugg(true);
   }
 
   function handlePlaceInput(val) {
     setActPlace(val);
+    setActLat(null); setActLng(null);   // reset coords when typing manually
     clearTimeout(placeDebounceRef.current);
     placeDebounceRef.current = setTimeout(() => fetchPlaceSuggestions(val), 350);
   }
 
   function selectPlaceSuggestion(s) {
     setActPlace(s.placeName || s.placeAddress || '');
+    setActLat(parseFloat(s.latitude)  || null);
+    setActLng(parseFloat(s.longitude) || null);
     setPlaceSuggestions([]);
     setShowPlaceSugg(false);
   }
@@ -115,9 +107,11 @@ function ItineraryTab({ trip, refresh }) {
     addActivity(trip.id, targetDay, {
       time: actTime, type: actType, title: actTitle.trim(),
       place: actPlace.trim(), cost: Number(actCost) || 0, note: actNote.trim(),
+      lat: actLat || undefined, lng: actLng || undefined,
     });
     refresh(); setActSheet(false);
-    setActTime(''); setActType('food'); setActTitle(''); setActPlace(''); setActCost(''); setActNote('');
+    setActTime(''); setActType('food'); setActTitle(''); setActPlace('');
+    setActLat(null); setActLng(null); setActCost(''); setActNote('');
   }
 
   /* empty state */

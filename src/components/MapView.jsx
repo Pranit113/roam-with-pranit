@@ -1,12 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { mappls, mappls_plugin } from 'mappls-web-maps';
-import { Search, MapPin, X, Trash2 } from 'lucide-react';
+import { Search, MapPin, X, Trash2, Navigation } from 'lucide-react';
+import { mapplsObj, mapplsPlugin, initMappls, searchPlaces } from '../utils/mappls';
 import { addPin, deletePin, getTrip } from '../utils/storage';
-
-const MAPPLS_KEY = 'lifbgrgdylewzefownzpslvqbdqdgtgdvtmk';
-
-const mapplsObj    = new mappls();
-const mapplsPlugin = new mappls_plugin();
 
 const CAT = {
   landmark: { label: 'Landmark', color: '#10B981', bg: '#ECFDF5' },
@@ -17,25 +12,32 @@ const CAT = {
   shopping: { label: 'Shopping', color: '#F97316', bg: '#FFF7ED' },
   nature:   { label: 'Nature',   color: '#84CC16', bg: '#F7FEE7' },
   travel:   { label: 'Travel',   color: '#6366F1', bg: '#EEF2FF' },
+  current:  { label: 'You',      color: '#EF4444', bg: '#FEF2F2' },
 };
 
-export default function MapView({ tripId, mapCenter }) {
-  const mapRef     = useRef(null);       // stores the map instance
-  const markersRef = useRef({});
-  const searchPluginRef = useRef(null);
+// Distinct colours for day polylines
+const DAY_COLORS = [
+  '#10B981','#6366F1','#F59E0B','#EC4899','#0EA5E9',
+  '#F97316','#8B5CF6','#84CC16','#EF4444','#14B8A6',
+];
 
-  const [isMapLoaded, setIsMapLoaded]   = useState(false);
-  const [pins,        setPins]          = useState([]);
-  const [pending,     setPending]       = useState(null);
-  const [selCat,      setSelCat]        = useState('landmark');
-  const [note,        setNote]          = useState('');
-  const [query,       setQuery]         = useState('');
-  const [suggestions, setSuggestions]   = useState([]);
-  const [showSugg,    setShowSugg]      = useState(false);
-  const [loadError,   setLoadError]     = useState(null);
+export default function MapView({ tripId, mapCenter }) {
+  const mapRef     = useRef(null);
+  const markersRef = useRef({});
+  const polylinesRef = useRef([]);
+
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [pins,        setPins]        = useState([]);
+  const [pending,     setPending]     = useState(null);
+  const [selCat,      setSelCat]      = useState('landmark');
+  const [note,        setNote]        = useState('');
+  const [query,       setQuery]       = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSugg,    setShowSugg]    = useState(false);
+  const [loadError,   setLoadError]   = useState(null);
+  const [locating,    setLocating]    = useState(false);
   const debounceRef = useRef(null);
 
-  /* Reload pins */
   const loadPins = useCallback(() => {
     const trip = getTrip(tripId);
     setPins(trip?.pins || []);
@@ -43,21 +45,13 @@ export default function MapView({ tripId, mapCenter }) {
 
   useEffect(() => { loadPins(); }, [loadPins]);
 
-  /* Initialize Mappls map via npm SDK */
+  /* ── Init map ── */
   useEffect(() => {
-    const loadConfig = {
-      map: true,
-      layer: 'vector',
-      version: '3.0',
-      libraries: [],
-      plugins: ['placeSearch'],
-    };
-
-    mapplsObj.initialize(MAPPLS_KEY, loadConfig, () => {
+    initMappls(() => {
       try {
         const center = mapCenter
           ? [mapCenter.lat, mapCenter.lng]
-          : [20.5937, 78.9629]; // India
+          : [20.5937, 78.9629];
 
         const newMap = mapplsObj.Map({
           id: 'mappls-map-el',
@@ -72,9 +66,11 @@ export default function MapView({ tripId, mapCenter }) {
           mapRef.current = newMap;
           setIsMapLoaded(true);
 
-          // Draw existing pins
           const trip = getTrip(tripId);
+          // Draw pinned markers
           (trip?.pins || []).forEach(p => addMarkerToMap(newMap, p));
+          // Draw day-wise travel path
+          drawDayPaths(newMap, trip);
         });
       } catch (err) {
         setLoadError('Map failed to load: ' + err.message);
@@ -90,9 +86,54 @@ export default function MapView({ tripId, mapCenter }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
-  /* Add a Mappls marker */
+  /* ── Draw day-wise travel polylines ── */
+  function drawDayPaths(map, trip) {
+    if (!trip?.days?.length) return;
+
+    // Remove old polylines
+    polylinesRef.current.forEach(pl => { try { pl.remove(); } catch {} });
+    polylinesRef.current = [];
+
+    trip.days.forEach((day, dayIdx) => {
+      const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+      const coords = (day.activities || [])
+        .filter(a => a.lat && a.lng)
+        .map(a => ({ lat: a.lat, lng: a.lng }));
+
+      if (coords.length < 2) return;
+
+      try {
+        const polyline = mapplsObj.Polyline({
+          map,
+          path: coords,
+          strokeColor: color,
+          strokeOpacity: 0.85,
+          strokeWeight: 4,
+        });
+        polylinesRef.current.push(polyline);
+
+        // Label marker for each activity
+        coords.forEach((coord, i) => {
+          const act = (day.activities || []).filter(a => a.lat && a.lng)[i];
+          if (!act) return;
+          mapplsObj.Marker({
+            map,
+            position: { lat: coord.lat, lng: coord.lng },
+            popupHtml: `<div style="font-family:'Outfit',sans-serif;padding:6px 10px;min-width:140px">
+              <div style="font-size:11px;font-weight:700;color:${color};margin-bottom:2px">Day ${day.day}</div>
+              <b style="color:#0F172A;font-size:13px">${act.title}</b>
+              ${act.place ? `<div style="color:#64748B;font-size:11px;margin-top:2px">📍 ${act.place}</div>` : ''}
+              ${act.time  ? `<div style="color:#94A3B8;font-size:11px">⏰ ${act.time}</div>` : ''}
+            </div>`,
+            popupOptions: { openPopup: false },
+          });
+        });
+      } catch {}
+    });
+  }
+
+  /* ── Add a marker ── */
   function addMarkerToMap(map, pin) {
-    const color = CAT[pin.category]?.color || '#10B981';
     try {
       const marker = mapplsObj.Marker({
         map,
@@ -109,32 +150,19 @@ export default function MapView({ tripId, mapCenter }) {
     } catch {}
   }
 
-  /* Place search using Mappls placeSearch plugin */
-  async function searchPlaces(q) {
+  /* ── Search places ── */
+  async function doSearch(q) {
     if (!q || q.length < 2) { setSuggestions([]); return; }
-    try {
-      // Use the Mappls plugin search
-      mapplsPlugin.search({
-        keyword: q,
-        callback: function(data) {
-          if (data && data.suggestedLocations && data.suggestedLocations.length) {
-            setSuggestions(data.suggestedLocations.slice(0, 6));
-            setShowSugg(true);
-          } else {
-            setSuggestions([]);
-          }
-        }
-      });
-    } catch {
-      setSuggestions([]);
-    }
+    const results = await searchPlaces(q);
+    setSuggestions(results.slice(0, 6));
+    if (results.length) setShowSugg(true);
   }
 
   function handleQueryChange(e) {
     const val = e.target.value;
     setQuery(val);
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => searchPlaces(val), 350);
+    debounceRef.current = setTimeout(() => doSearch(val), 350);
   }
 
   function selectSuggestion(s) {
@@ -142,12 +170,11 @@ export default function MapView({ tripId, mapCenter }) {
     const lng = parseFloat(s.longitude);
     const name = s.placeName || s.placeAddress || query;
     const address = s.placeAddress || '';
-    if (!lat || !lng || !mapRef.current) return;
+    if (!lat || !lng) return;
 
-    try {
-      mapRef.current.setCenter([lat, lng]);
-      mapRef.current.setZoom(14);
-    } catch {}
+    if (mapRef.current) {
+      try { mapRef.current.setCenter([lat, lng]); mapRef.current.setZoom(15); } catch {}
+    }
 
     setPending({ lat, lng, name, address });
     setQuery(name);
@@ -156,7 +183,32 @@ export default function MapView({ tripId, mapCenter }) {
     setNote('');
   }
 
-  /* Confirm pin drop */
+  /* ── Current location ── */
+  function pinMyLocation() {
+    if (!navigator.geolocation) return alert('Geolocation not supported');
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLocating(false);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const name = 'My Location';
+
+        if (mapRef.current) {
+          try { mapRef.current.setCenter([lat, lng]); mapRef.current.setZoom(16); } catch {}
+        }
+        setPending({ lat, lng, name, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+        setSelCat('current');
+        setQuery(name);
+        setSuggestions([]);
+        setNote('');
+      },
+      () => { setLocating(false); alert('Could not get your location. Please allow location access.'); },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+
+  /* ── Confirm pin ── */
   function confirmPin() {
     if (!pending || !mapRef.current) return;
     const updated = addPin(tripId, {
@@ -171,7 +223,7 @@ export default function MapView({ tripId, mapCenter }) {
     setQuery('');
   }
 
-  /* Delete pin */
+  /* ── Delete pin ── */
   function removePinHandler(pinId) {
     if (markersRef.current[pinId]) {
       try { markersRef.current[pinId].remove(); } catch {}
@@ -181,7 +233,7 @@ export default function MapView({ tripId, mapCenter }) {
     loadPins();
   }
 
-  /* Pan to pin */
+  /* ── Pan to pin ── */
   function panToPin(pin) {
     if (!mapRef.current) return;
     try {
@@ -192,52 +244,67 @@ export default function MapView({ tripId, mapCenter }) {
 
   return (
     <div className="map-outer">
-      {/* Search Bar */}
+      {/* Search + Locate */}
       <div className="map-search-bar">
-        <div style={{ position: 'relative' }}>
-          <Search size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', zIndex: 1, pointerEvents: 'none' }} />
-          <input
-            type="text"
-            value={query}
-            onChange={handleQueryChange}
-            onFocus={() => suggestions.length > 0 && setShowSugg(true)}
-            onBlur={() => setTimeout(() => setShowSugg(false), 200)}
-            placeholder="Search places in India…"
-            className="input"
-            style={{ paddingLeft: 42 }}
-          />
-          {/* Suggestions dropdown */}
-          {showSugg && suggestions.length > 0 && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0,
-              background: 'white', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-              border: '1px solid #E2E8F0', zIndex: 9999, overflow: 'hidden', marginTop: 4,
-            }}>
-              {suggestions.map((s, i) => (
-                <div key={i}
-                  onMouseDown={() => selectSuggestion(s)}
-                  style={{
-                    padding: '11px 16px', cursor: 'pointer',
-                    borderBottom: i < suggestions.length - 1 ? '1px solid #F1F5F9' : 'none',
-                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'white'}
-                >
-                  <MapPin size={14} color="#10B981" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{s.placeName || s.placeAddress}</div>
-                    {s.placeAddress && s.placeName !== s.placeAddress && (
-                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{s.placeAddress}</div>
-                    )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={17} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', zIndex: 1, pointerEvents: 'none' }} />
+            <input
+              type="text"
+              value={query}
+              onChange={handleQueryChange}
+              onFocus={() => suggestions.length > 0 && setShowSugg(true)}
+              onBlur={() => setTimeout(() => setShowSugg(false), 200)}
+              placeholder="Search places in India…"
+              className="input"
+              style={{ paddingLeft: 40 }}
+            />
+            {/* Suggestions */}
+            {showSugg && suggestions.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0,
+                background: 'white', borderRadius: 12, boxShadow: '0 10px 36px rgba(0,0,0,0.16)',
+                border: '1px solid #E2E8F0', zIndex: 9999, overflow: 'hidden', marginTop: 4,
+              }}>
+                {suggestions.map((s, i) => (
+                  <div key={i} onMouseDown={() => selectSuggestion(s)}
+                    style={{ padding: '11px 14px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid #F1F5F9' : 'none', display: 'flex', gap: 10, alignItems: 'flex-start' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                  >
+                    <MapPin size={14} color="#10B981" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{s.placeName || s.placeAddress}</div>
+                      {s.placeAddress && s.placeName !== s.placeAddress && (
+                        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{s.placeAddress}</div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Current location button */}
+          <button
+            onClick={pinMyLocation}
+            disabled={locating}
+            title="Pin my current location"
+            style={{
+              width: 44, height: 44, borderRadius: 12, border: '1.5px solid #E2E8F0',
+              background: locating ? '#F1F5F9' : 'white', cursor: locating ? 'wait' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              color: locating ? '#94A3B8' : '#10B981', transition: 'all 200ms',
+            }}
+          >
+            {locating
+              ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2, borderTopColor: '#10B981', borderColor: '#E2E8F0' }} />
+              : <Navigation size={18} />
+            }
+          </button>
         </div>
 
-        {/* Pending confirm card */}
+        {/* Confirm card */}
         {pending && (
           <div className="pending-place-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -263,25 +330,41 @@ export default function MapView({ tripId, mapCenter }) {
         )}
       </div>
 
-      {/* Loading / Error states */}
+      {/* Loading */}
       {!isMapLoaded && !loadError && (
-        <div style={{ height: 480, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#94A3B8', background: '#F8FAFC', borderRadius: 16 }}>
+        <div style={{ height: 460, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#94A3B8', background: '#F8FAFC', borderRadius: 16 }}>
           <div style={{ fontSize: 48 }}>🗺️</div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>Loading MapMyIndia…</div>
-          <div style={{ fontSize: 12 }}>Powered by Mappls</div>
-        </div>
-      )}
-      {loadError && (
-        <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', fontSize: 13, padding: 20, textAlign: 'center' }}>
-          {loadError}
         </div>
       )}
 
-      {/* Map container — always in DOM so SDK can mount into it */}
+      {/* Map container */}
       <div
         id="mappls-map-el"
-        style={{ width: '100%', height: 480, display: isMapLoaded ? 'block' : 'none', borderRadius: 16, overflow: 'hidden' }}
+        style={{ width: '100%', height: 460, display: isMapLoaded ? 'block' : 'none', borderRadius: 16, overflow: 'hidden' }}
       />
+
+      {/* Day path legend */}
+      {isMapLoaded && (() => {
+        const trip = getTrip(tripId);
+        const daysWithLoc = (trip?.days || []).filter(d =>
+          (d.activities || []).some(a => a.lat && a.lng)
+        );
+        if (!daysWithLoc.length) return null;
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '10px 4px 0' }}>
+            {daysWithLoc.map((day, i) => {
+              const color = DAY_COLORS[i % DAY_COLORS.length];
+              return (
+                <div key={day.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#334155' }}>
+                  <span style={{ width: 20, height: 4, borderRadius: 4, background: color, display: 'inline-block' }} />
+                  Day {day.day}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Pins list */}
       {pins.length > 0 && (
