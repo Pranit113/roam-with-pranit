@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { mappls_plugin } from 'mappls-web-maps';
+const _mapplsPlugin = new mappls_plugin();
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, ChevronDown, ChevronUp, MoreVertical } from 'lucide-react';
@@ -69,18 +71,20 @@ function ItineraryTab({ trip, refresh }) {
   const [showPlaceSugg,    setShowPlaceSugg]    = useState(false);
   const placeDebounceRef = useRef(null);
 
-  const MAPPLS_KEY = 'lifbgrgdylewzefownzpslvqbdqdgtgdvtmk';
-
-  async function fetchPlaceSuggestions(q) {
+  function fetchPlaceSuggestions(q) {
     if (!q || q.length < 2) { setPlaceSuggestions([]); return; }
     try {
-      const res = await fetch(
-        `https://atlas.mappls.com/api/places/search/json?query=${encodeURIComponent(q)}&region=IND&access_token=${MAPPLS_KEY}`
-      );
-      const data = await res.json();
-      const results = data?.suggestedLocations || data?.copResults || [];
-      setPlaceSuggestions(results.slice(0, 5));
-      setShowPlaceSugg(true);
+      _mapplsPlugin.search({
+        keyword: q,
+        callback: function(data) {
+          if (data && data.suggestedLocations && data.suggestedLocations.length) {
+            setPlaceSuggestions(data.suggestedLocations.slice(0, 5));
+            setShowPlaceSugg(true);
+          } else {
+            setPlaceSuggestions([]);
+          }
+        }
+      });
     } catch {
       setPlaceSuggestions([]);
     }

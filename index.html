@@ -9,24 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <title>RoamWithPranit</title>
-    <!-- MapMyIndia (Mappls) Map SDK -->
-    <script src="https://apis.mappls.com/advancedmaps/api/lifbgrgdylewzefownzpslvqbdqdgtgdvtmk/map_sdk?v=3.0&layer=vector"></script>
-    <!-- MapMyIndia Places Plugin -->
-    <script src="https://apis.mappls.com/advancedmaps/api/lifbgrgdylewzefownzpslvqbdqdgtgdvtmk/map_sdk_plugins?v=3.0"></script>
-    <script>
-      window._mapplsReady = false;
-      function _onMapplsLoad() {
-        window._mapplsReady = true;
-        window.dispatchEvent(new CustomEvent('mappls:ready'));
-      }
-      // fallback if scripts already fired
-      window.addEventListener('load', function () {
-        if (!window._mapplsReady && window.mappls) {
-          window._mapplsReady = true;
-          window.dispatchEvent(new CustomEvent('mappls:ready'));
-        }
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>

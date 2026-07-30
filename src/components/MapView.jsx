@@ -1,6 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { mappls, mappls_plugin } from 'mappls-web-maps';
 import { Search, MapPin, X, Trash2 } from 'lucide-react';
 import { addPin, deletePin, getTrip } from '../utils/storage';
+
+const MAPPLS_KEY = 'lifbgrgdylewzefownzpslvqbdqdgtgdvtmk';
+
+const mapplsObj    = new mappls();
+const mapplsPlugin = new mappls_plugin();
 
 const CAT = {
   landmark: { label: 'Landmark', color: '#10B981', bg: '#ECFDF5' },
@@ -13,23 +19,21 @@ const CAT = {
   travel:   { label: 'Travel',   color: '#6366F1', bg: '#EEF2FF' },
 };
 
-const MAPPLS_KEY = 'lifbgrgdylewzefownzpslvqbdqdgtgdvtmk';
-
 export default function MapView({ tripId, mapCenter }) {
-  const mapRef     = useRef(null);
-  const mapInst    = useRef(null);
+  const mapRef     = useRef(null);       // stores the map instance
   const markersRef = useRef({});
-  const searchRef  = useRef(null);
-  const pluginRef  = useRef(null);
+  const searchPluginRef = useRef(null);
 
-  const [ready,   setReady]   = useState(false);
-  const [pins,    setPins]    = useState([]);
-  const [pending, setPending] = useState(null);
-  const [selCat,  setSelCat]  = useState('landmark');
-  const [note,    setNote]    = useState('');
-  const [query,   setQuery]   = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSugg, setShowSugg] = useState(false);
+  const [isMapLoaded, setIsMapLoaded]   = useState(false);
+  const [pins,        setPins]          = useState([]);
+  const [pending,     setPending]       = useState(null);
+  const [selCat,      setSelCat]        = useState('landmark');
+  const [note,        setNote]          = useState('');
+  const [query,       setQuery]         = useState('');
+  const [suggestions, setSuggestions]   = useState([]);
+  const [showSugg,    setShowSugg]      = useState(false);
+  const [loadError,   setLoadError]     = useState(null);
+  const debounceRef = useRef(null);
 
   /* Reload pins */
   const loadPins = useCallback(() => {
@@ -39,71 +43,88 @@ export default function MapView({ tripId, mapCenter }) {
 
   useEffect(() => { loadPins(); }, [loadPins]);
 
-  /* Wait for Mappls SDK */
+  /* Initialize Mappls map via npm SDK */
   useEffect(() => {
-    function checkReady() {
-      if (window.mappls && window.mappls.Map) {
-        setReady(true);
-      } else {
-        setTimeout(checkReady, 200);
+    const loadConfig = {
+      map: true,
+      layer: 'vector',
+      version: '3.0',
+      libraries: [],
+      plugins: ['placeSearch'],
+    };
+
+    mapplsObj.initialize(MAPPLS_KEY, loadConfig, () => {
+      try {
+        const center = mapCenter
+          ? [mapCenter.lat, mapCenter.lng]
+          : [20.5937, 78.9629]; // India
+
+        const newMap = mapplsObj.Map({
+          id: 'mappls-map-el',
+          properties: {
+            center,
+            zoom: mapCenter ? 11 : 5,
+            zoomControl: true,
+          },
+        });
+
+        newMap.on('load', () => {
+          mapRef.current = newMap;
+          setIsMapLoaded(true);
+
+          // Draw existing pins
+          const trip = getTrip(tripId);
+          (trip?.pins || []).forEach(p => addMarkerToMap(newMap, p));
+        });
+      } catch (err) {
+        setLoadError('Map failed to load: ' + err.message);
       }
-    }
-    checkReady();
-  }, []);
-
-  /* Init Mappls map */
-  useEffect(() => {
-    if (!ready || !mapRef.current || mapInst.current) return;
-
-    const center = mapCenter
-      ? [mapCenter.lng, mapCenter.lat]
-      : [78.9629, 20.5937]; // India center [lng, lat]
-
-    const map = new window.mappls.Map(mapRef.current, {
-      center,
-      zoom: mapCenter ? 11 : 5,
-      search: false,
     });
 
-    mapInst.current = map;
-
-    /* Draw existing pins */
-    const trip = getTrip(tripId);
-    (trip?.pins || []).forEach(p => addMarker(map, p));
-  }, [ready, tripId, mapCenter]);
+    return () => {
+      if (mapRef.current) {
+        try { mapRef.current.remove(); } catch {}
+        mapRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId]);
 
   /* Add a Mappls marker */
-  function addMarker(map, pin) {
+  function addMarkerToMap(map, pin) {
     const color = CAT[pin.category]?.color || '#10B981';
-    const marker = new window.mappls.Marker({
-      map,
-      position: { lat: pin.lat, lng: pin.lng },
-      popupHtml: `<div style="font-family:'Outfit',sans-serif;padding:6px 8px;min-width:150px">
-        <b style="color:#0F172A;font-size:14px">${pin.name}</b>
-        <div style="color:#64748B;font-size:12px;margin-top:2px">${CAT[pin.category]?.label || pin.category}</div>
-        ${pin.note ? `<div style="color:#334155;font-size:12px;margin-top:4px;font-style:italic">"${pin.note}"</div>` : ''}
-      </div>`,
-      popupOptions: { openPopup: false },
-      icon: {
-        url: makePinSVG(color),
-        width: 36,
-        height: 48,
-      },
-    });
-    markersRef.current[pin.id] = marker;
+    try {
+      const marker = mapplsObj.Marker({
+        map,
+        position: { lat: pin.lat, lng: pin.lng },
+        draggable: false,
+        popupHtml: `<div style="font-family:'Outfit',sans-serif;padding:6px 8px;min-width:150px">
+          <b style="color:#0F172A;font-size:14px">${pin.name}</b>
+          <div style="color:#64748B;font-size:12px;margin-top:2px">${CAT[pin.category]?.label || pin.category}</div>
+          ${pin.note ? `<div style="color:#334155;font-size:12px;margin-top:4px;font-style:italic">"${pin.note}"</div>` : ''}
+        </div>`,
+        popupOptions: { openPopup: false },
+      });
+      markersRef.current[pin.id] = marker;
+    } catch {}
   }
 
-  /* Search places using Mappls REST API */
+  /* Place search using Mappls placeSearch plugin */
   async function searchPlaces(q) {
-    if (!q || q.length < 3) { setSuggestions([]); return; }
+    if (!q || q.length < 2) { setSuggestions([]); return; }
     try {
-      const res = await fetch(
-        `https://atlas.mappls.com/api/places/search/json?query=${encodeURIComponent(q)}&region=IND&access_token=${MAPPLS_KEY}`
-      );
-      const data = await res.json();
-      const results = data?.suggestedLocations || data?.copResults || [];
-      setSuggestions(results.slice(0, 6));
-      setShowSugg(true);
+      // Use the Mappls plugin search
+      mapplsPlugin.search({
+        keyword: q,
+        callback: function(data) {
+          if (data && data.suggestedLocations && data.suggestedLocations.length) {
+            setSuggestions(data.suggestedLocations.slice(0, 6));
+            setShowSugg(true);
+          } else {
+            setSuggestions([]);
+          }
+        }
+      });
     } catch {
       setSuggestions([]);
     }
@@ -112,7 +133,8 @@ export default function MapView({ tripId, mapCenter }) {
   function handleQueryChange(e) {
     const val = e.target.value;
     setQuery(val);
-    searchPlaces(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => searchPlaces(val), 350);
   }
 
   function selectSuggestion(s) {
@@ -120,13 +142,12 @@ export default function MapView({ tripId, mapCenter }) {
     const lng = parseFloat(s.longitude);
     const name = s.placeName || s.placeAddress || query;
     const address = s.placeAddress || '';
+    if (!lat || !lng || !mapRef.current) return;
 
-    if (!lat || !lng) return;
-
-    if (mapInst.current) {
-      mapInst.current.setCenter([lng, lat]);
-      mapInst.current.setZoom(14);
-    }
+    try {
+      mapRef.current.setCenter([lat, lng]);
+      mapRef.current.setZoom(14);
+    } catch {}
 
     setPending({ lat, lng, name, address });
     setQuery(name);
@@ -135,15 +156,15 @@ export default function MapView({ tripId, mapCenter }) {
     setNote('');
   }
 
-  /* Confirm pin */
+  /* Confirm pin drop */
   function confirmPin() {
-    if (!pending || !mapInst.current) return;
+    if (!pending || !mapRef.current) return;
     const updated = addPin(tripId, {
       lat: pending.lat, lng: pending.lng,
       name: pending.name, category: selCat, note,
     });
     const newPin = updated.pins[updated.pins.length - 1];
-    addMarker(mapInst.current, newPin);
+    addMarkerToMap(mapRef.current, newPin);
     loadPins();
     setPending(null);
     setNote('');
@@ -153,7 +174,7 @@ export default function MapView({ tripId, mapCenter }) {
   /* Delete pin */
   function removePinHandler(pinId) {
     if (markersRef.current[pinId]) {
-      markersRef.current[pinId].remove();
+      try { markersRef.current[pinId].remove(); } catch {}
       delete markersRef.current[pinId];
     }
     deletePin(tripId, pinId);
@@ -162,38 +183,30 @@ export default function MapView({ tripId, mapCenter }) {
 
   /* Pan to pin */
   function panToPin(pin) {
-    if (!mapInst.current) return;
-    mapInst.current.setCenter([pin.lng, pin.lat]);
-    mapInst.current.setZoom(15);
-  }
-
-  if (!ready) {
-    return (
-      <div style={{ height: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#94A3B8' }}>
-        <div style={{ fontSize: 48 }}>🗺️</div>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>Loading MapMyIndia map…</div>
-      </div>
-    );
+    if (!mapRef.current) return;
+    try {
+      mapRef.current.setCenter([pin.lat, pin.lng]);
+      mapRef.current.setZoom(15);
+    } catch {}
   }
 
   return (
     <div className="map-outer">
-      {/* Search */}
+      {/* Search Bar */}
       <div className="map-search-bar">
         <div style={{ position: 'relative' }}>
-          <Search size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', zIndex: 1 }} />
+          <Search size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', zIndex: 1, pointerEvents: 'none' }} />
           <input
-            ref={searchRef}
             type="text"
             value={query}
             onChange={handleQueryChange}
             onFocus={() => suggestions.length > 0 && setShowSugg(true)}
             onBlur={() => setTimeout(() => setShowSugg(false), 200)}
-            placeholder="Search any place in India…"
+            placeholder="Search places in India…"
             className="input"
             style={{ paddingLeft: 42 }}
           />
-          {/* Autocomplete dropdown */}
+          {/* Suggestions dropdown */}
           {showSugg && suggestions.length > 0 && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0,
@@ -204,7 +217,8 @@ export default function MapView({ tripId, mapCenter }) {
                 <div key={i}
                   onMouseDown={() => selectSuggestion(s)}
                   style={{
-                    padding: '12px 16px', cursor: 'pointer', borderBottom: i < suggestions.length - 1 ? '1px solid #F1F5F9' : 'none',
+                    padding: '11px 16px', cursor: 'pointer',
+                    borderBottom: i < suggestions.length - 1 ? '1px solid #F1F5F9' : 'none',
                     display: 'flex', alignItems: 'flex-start', gap: 10,
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
@@ -223,7 +237,7 @@ export default function MapView({ tripId, mapCenter }) {
           )}
         </div>
 
-        {/* Pending place confirm card */}
+        {/* Pending confirm card */}
         {pending && (
           <div className="pending-place-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -233,31 +247,15 @@ export default function MapView({ tripId, mapCenter }) {
               </div>
               <button onClick={() => setPending(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
             </div>
-
-            {/* Category chips */}
             <div className="category-chips">
               {Object.entries(CAT).map(([key, { label, color, bg }]) => (
-                <button
-                  key={key}
-                  className="cat-chip"
-                  onClick={() => setSelCat(key)}
-                  style={{
-                    background:  selCat === key ? color : bg,
-                    color:       selCat === key ? '#fff' : color,
-                    borderColor: color,
-                  }}
-                >{label}</button>
+                <button key={key} className="cat-chip" onClick={() => setSelCat(key)}
+                  style={{ background: selCat === key ? color : bg, color: selCat === key ? '#fff' : color, borderColor: color }}>
+                  {label}
+                </button>
               ))}
             </div>
-
-            <input
-              type="text"
-              placeholder="Add a note (optional)…"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              className="input input-sm"
-              style={{ marginBottom: 10 }}
-            />
+            <input type="text" placeholder="Add a note (optional)…" value={note} onChange={e => setNote(e.target.value)} className="input input-sm" style={{ marginBottom: 10 }} />
             <button className="btn btn-md btn-primary btn-full" onClick={confirmPin}>
               <MapPin size={16} /> Drop Pin
             </button>
@@ -265,8 +263,25 @@ export default function MapView({ tripId, mapCenter }) {
         )}
       </div>
 
-      {/* Map */}
-      <div ref={mapRef} className="map-el" />
+      {/* Loading / Error states */}
+      {!isMapLoaded && !loadError && (
+        <div style={{ height: 480, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#94A3B8', background: '#F8FAFC', borderRadius: 16 }}>
+          <div style={{ fontSize: 48 }}>🗺️</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Loading MapMyIndia…</div>
+          <div style={{ fontSize: 12 }}>Powered by Mappls</div>
+        </div>
+      )}
+      {loadError && (
+        <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', fontSize: 13, padding: 20, textAlign: 'center' }}>
+          {loadError}
+        </div>
+      )}
+
+      {/* Map container — always in DOM so SDK can mount into it */}
+      <div
+        id="mappls-map-el"
+        style={{ width: '100%', height: 480, display: isMapLoaded ? 'block' : 'none', borderRadius: 16, overflow: 'hidden' }}
+      />
 
       {/* Pins list */}
       {pins.length > 0 && (
@@ -284,10 +299,8 @@ export default function MapView({ tripId, mapCenter }) {
                   {pin.note && <div className="pin-note">{pin.note}</div>}
                 </div>
                 <span className="pin-cat" style={{ background: bg, color }}>{label}</span>
-                <button
-                  onClick={e => { e.stopPropagation(); removePinHandler(pin.id); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', marginLeft: 6, flexShrink: 0 }}
-                >
+                <button onClick={e => { e.stopPropagation(); removePinHandler(pin.id); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', marginLeft: 6, flexShrink: 0 }}>
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -297,15 +310,4 @@ export default function MapView({ tripId, mapCenter }) {
       )}
     </div>
   );
-}
-
-/* Helper: make a colored pin SVG icon */
-function makePinSVG(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 48" width="36" height="48">
-    <path d="M18 0C8.06 0 0 8.059 0 18c0 13.5 18 30 18 30S36 31.5 36 18C36 8.059 27.94 0 18 0z"
-      fill="${color}" stroke="white" stroke-width="1.5"/>
-    <circle cx="18" cy="18" r="7" fill="white"/>
-    <circle cx="18" cy="18" r="4" fill="${color}"/>
-  </svg>`;
-  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 }
