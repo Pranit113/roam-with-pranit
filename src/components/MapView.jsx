@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, MapPin, X, Trash2, Navigation } from 'lucide-react';
+import { Search, MapPin, X, Trash2, Navigation, Layers } from 'lucide-react';
 import { addPin, deletePin, getTrip } from '../utils/storage';
 import PlaceAutocompleteInput from './PlaceAutocompleteInput';
 
@@ -25,15 +25,17 @@ const DAY_COLORS = [
 export default function MapView({ tripId, mapCenter }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef  = useRef(null);
+  const tileLayerRef    = useRef(null);
   const markersRef      = useRef({});
   const polylinesRef    = useRef([]);
 
-  const [pins,      setPins]      = useState([]);
-  const [pending,   setPending]   = useState(null);
-  const [selCat,    setSelCat]    = useState('landmark');
-  const [note,      setNote]      = useState('');
-  const [query,     setQuery]     = useState('');
-  const [locating,  setLocating]  = useState(false);
+  const [pins,       setPins]       = useState([]);
+  const [pending,    setPending]    = useState(null);
+  const [selCat,     setSelCat]     = useState('landmark');
+  const [note,       setNote]       = useState('');
+  const [query,      setQuery]      = useState('');
+  const [locating,   setLocating]   = useState(false);
+  const [mapStyle,   setMapStyle]   = useState('google-roadmap'); // google-roadmap | google-satellite | voyager
 
   const loadPins = useCallback(() => {
     const trip = getTrip(tripId);
@@ -42,9 +44,9 @@ export default function MapView({ tripId, mapCenter }) {
 
   useEffect(() => { loadPins(); }, [loadPins]);
 
-  /* Helper to create colored custom SVG pin icon for Leaflet */
+  /* Helper to create colored custom SVG pin icon */
   function createCustomIcon(color) {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 48" width="32" height="42">
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 48" width="34" height="44">
       <path d="M18 0C8.06 0 0 8.059 0 18c0 13.5 18 30 18 30S36 31.5 36 18C36 8.059 27.94 0 18 0z" fill="${color}" stroke="#ffffff" stroke-width="2"/>
       <circle cx="18" cy="18" r="7" fill="#ffffff"/>
       <circle cx="18" cy="18" r="4" fill="${color}"/>
@@ -52,17 +54,28 @@ export default function MapView({ tripId, mapCenter }) {
     return L.divIcon({
       className: 'custom-leaflet-pin',
       html: svg,
-      iconSize: [32, 42],
-      iconAnchor: [16, 42],
-      popupAnchor: [0, -38],
+      iconSize: [34, 44],
+      iconAnchor: [17, 44],
+      popupAnchor: [0, -40],
     });
+  }
+
+  // Map Tile Layers Configuration
+  function getTileUrl(style) {
+    if (style === 'google-satellite') {
+      return 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Google Satellite Hybrid (labels + satellite)
+    }
+    if (style === 'voyager') {
+      return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    }
+    return 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'; // Google Roadmap (Default)
   }
 
   /* ── Initialize Leaflet Map ── */
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    const center = mapCenter ? [mapCenter.lat, mapCenter.lng] : [20.5937, 78.9629]; // Default India center
+    const center = mapCenter ? [mapCenter.lat, mapCenter.lng] : [20.5937, 78.9629];
     const zoom   = mapCenter ? 12 : 5;
 
     const map = L.map(mapContainerRef.current, {
@@ -71,16 +84,16 @@ export default function MapView({ tripId, mapCenter }) {
       zoomControl: true,
     });
 
-    // High quality Voyager tile layer by CartoDB (clean, modern map styling)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
+    const tileLayer = L.tileLayer(getTileUrl(mapStyle), {
+      maxZoom: 20,
       subdomains: 'abcd',
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; Google Maps & OpenStreetMap',
     }).addTo(map);
 
+    tileLayerRef.current  = tileLayer;
     mapInstanceRef.current = map;
 
-    // Click map to drop pin directly
+    // Click map anywhere to drop pin directly
     map.on('click', (e) => {
       const { lat, lng } = e.latlng;
       setPending({
@@ -92,7 +105,6 @@ export default function MapView({ tripId, mapCenter }) {
       setNote('');
     });
 
-    // Render initial trip pins & paths
     const trip = getTrip(tripId);
     renderPinsAndPaths(map, trip);
 
@@ -105,22 +117,28 @@ export default function MapView({ tripId, mapCenter }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
+  // Update map style when changed
+  useEffect(() => {
+    if (mapInstanceRef.current && tileLayerRef.current) {
+      tileLayerRef.current.setUrl(getTileUrl(mapStyle));
+    }
+  }, [mapStyle]);
+
   /* Render all pins & day-wise travel polylines */
   function renderPinsAndPaths(map, trip) {
     if (!map) return;
 
-    // Clear old markers & polylines
     Object.values(markersRef.current).forEach(m => m.remove());
     markersRef.current = {};
 
     polylinesRef.current.forEach(p => p.remove());
     polylinesRef.current = [];
 
-    // 1. Draw Pinned Places
+    // 1. Pinned Places
     (trip?.pins || []).forEach(pin => {
       const color = CAT[pin.category]?.color || '#10B981';
       const marker = L.marker([pin.lat, pin.lng], { icon: createCustomIcon(color) }).addTo(map);
-      marker.bindPopup(`<div style="font-family:'Outfit',sans-serif;padding:4px 6px;min-width:140px">
+      marker.bindPopup(`<div style="font-family:'Outfit',sans-serif;padding:4px 6px;min-width:150px">
         <b style="color:#0F172A;font-size:14px;display:block">${pin.name}</b>
         <span style="color:#64748B;font-size:12px;margin-top:2px;display:block">${CAT[pin.category]?.label || pin.category}</span>
         ${pin.note ? `<div style="color:#334155;font-size:12px;margin-top:4px;font-style:italic">"${pin.note}"</div>` : ''}
@@ -128,7 +146,7 @@ export default function MapView({ tripId, mapCenter }) {
       markersRef.current[pin.id] = marker;
     });
 
-    // 2. Draw Day-Wise Travel Routes (Polylines)
+    // 2. Day-Wise Travel Routes
     if (trip?.days?.length) {
       trip.days.forEach((day, dayIdx) => {
         const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
@@ -137,7 +155,6 @@ export default function MapView({ tripId, mapCenter }) {
           .map(a => [a.lat, a.lng]);
 
         if (coords.length > 0) {
-          // Add numbered activity markers on map
           (day.activities || []).forEach((act, actIdx) => {
             if (!act.lat || !act.lng) return;
             const actMarker = L.circleMarker([act.lat, act.lng], {
@@ -156,7 +173,6 @@ export default function MapView({ tripId, mapCenter }) {
             </div>`);
           });
 
-          // Connect points with smooth route line if >= 2 points
           if (coords.length >= 2) {
             const polyline = L.polyline(coords, {
               color,
@@ -171,7 +187,6 @@ export default function MapView({ tripId, mapCenter }) {
     }
   }
 
-  // Re-render markers/paths when pins change
   useEffect(() => {
     if (mapInstanceRef.current) {
       const trip = getTrip(tripId);
@@ -179,7 +194,7 @@ export default function MapView({ tripId, mapCenter }) {
     }
   }, [pins, tripId]);
 
-  /* Get Current Location */
+  /* Get Current GPS Location */
   function pinMyLocation() {
     if (!navigator.geolocation) return alert('Geolocation not supported on this browser');
     setLocating(true);
@@ -204,16 +219,15 @@ export default function MapView({ tripId, mapCenter }) {
       },
       () => {
         setLocating(false);
-        alert('Could not detect your current location. Please allow location permissions.');
+        alert('Could not detect your location. Please check browser permissions.');
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   }
 
-  /* Confirm Pin */
   function confirmPin() {
     if (!pending) return;
-    const updated = addPin(tripId, {
+    addPin(tripId, {
       lat: pending.lat,
       lng: pending.lng,
       name: pending.name,
@@ -226,13 +240,11 @@ export default function MapView({ tripId, mapCenter }) {
     setQuery('');
   }
 
-  /* Remove Pin */
   function removePinHandler(pinId) {
     deletePin(tripId, pinId);
     loadPins();
   }
 
-  /* Pan to Pin */
   function panToPin(pin) {
     if (!mapInstanceRef.current) return;
     mapInstanceRef.current.flyTo([pin.lat, pin.lng], 15, { animate: true });
@@ -243,7 +255,7 @@ export default function MapView({ tripId, mapCenter }) {
 
   return (
     <div className="map-outer">
-      {/* Search & Location Controls */}
+      {/* Search & Location & Style Controls */}
       <div className="map-search-bar">
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1, position: 'relative' }}>
@@ -259,13 +271,40 @@ export default function MapView({ tripId, mapCenter }) {
                   }
                   setPending({ lat: loc.lat, lng: loc.lng, name: loc.name, address: loc.address });
                   setNote('');
+                } else {
+                  // If custom location without lat/lng, prompt user to click on map
+                  const center = mapInstanceRef.current ? mapInstanceRef.current.getCenter() : { lat: 20.5937, lng: 78.9629 };
+                  setPending({ lat: center.lat, lng: center.lng, name: loc.name, address: 'Custom place (click map to adjust location)' });
                 }
               }}
-              placeholder="Search places in India (e.g. Baga Beach, Triangle Hotel, Majale)…"
+              placeholder="Search any place in India or worldwide…"
               style={{ paddingLeft: 40 }}
             />
           </div>
 
+          {/* Map Style Toggle */}
+          <select
+            value={mapStyle}
+            onChange={e => setMapStyle(e.target.value)}
+            style={{
+              padding: '0 10px',
+              borderRadius: 12,
+              border: '1.5px solid #E2E8F0',
+              background: 'white',
+              fontSize: 12,
+              fontWeight: 600,
+              color: '#334155',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+            }}
+            title="Switch map layer"
+          >
+            <option value="google-roadmap">🗺️ Google Maps</option>
+            <option value="google-satellite">🛰️ Satellite</option>
+            <option value="voyager">🧭 Clean Vector</option>
+          </select>
+
+          {/* GPS Location Button */}
           <button
             onClick={pinMyLocation}
             disabled={locating}
@@ -312,7 +351,7 @@ export default function MapView({ tripId, mapCenter }) {
             </div>
             <input type="text" placeholder="Add a note (optional)…" value={note} onChange={e => setNote(e.target.value)} className="input input-sm" style={{ marginBottom: 10 }} />
             <button className="btn btn-md btn-primary btn-full" onClick={confirmPin}>
-              <MapPin size={16} /> Drop Pin On Map
+              <MapPin size={16} /> Save Pin To Map
             </button>
           </div>
         )}

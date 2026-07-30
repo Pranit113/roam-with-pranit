@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, Plus } from 'lucide-react';
 import { searchPlaces } from '../utils/mappls';
 
 export default function PlaceAutocompleteInput({
   value = '',
   onChange,
   onSelectLocation,
-  placeholder = 'Search places in India…',
+  placeholder = 'Search places or enter any location…',
   className = 'input',
   style = {},
   id,
@@ -32,7 +32,7 @@ export default function PlaceAutocompleteInput({
     if (onChange) onChange(val);
 
     clearTimeout(debounceRef.current);
-    if (!val || val.trim().length < 2) {
+    if (!val || val.trim().length < 1) {
       setSuggestions([]);
       setShowDropdown(false);
       setIsSearching(false);
@@ -42,20 +42,31 @@ export default function PlaceAutocompleteInput({
     setIsSearching(true);
     debounceRef.current = setTimeout(async () => {
       const results = await searchPlaces(val);
-      setSuggestions(results.slice(0, 6));
-      setShowDropdown(results.length > 0);
+      
+      // Always include a custom location option so ANY small place/shop/hotel can be added instantly
+      const customOption = {
+        isCustom: true,
+        placeName: val.trim(),
+        placeAddress: 'Custom Location (pin manually on map or save to itinerary)',
+        latitude: null,
+        longitude: null,
+      };
+
+      const finalSuggestions = [customOption, ...results.slice(0, 6)];
+      setSuggestions(finalSuggestions);
+      setShowDropdown(true);
       setIsSearching(false);
-    }, 250);
+    }, 200);
   }
 
   function handleSelect(s) {
-    const name = s.placeName || s.placeAddress || value;
+    const name = s.placeName || value;
     const address = s.placeAddress || '';
-    const lat = parseFloat(s.latitude) || null;
-    const lng = parseFloat(s.longitude) || null;
+    const lat = s.latitude ? parseFloat(s.latitude) : null;
+    const lng = s.longitude ? parseFloat(s.longitude) : null;
 
     if (onChange) onChange(name);
-    if (onSelectLocation) onSelectLocation({ name, address, lat, lng, raw: s });
+    if (onSelectLocation) onSelectLocation({ name, address, lat, lng, isCustom: !!s.isCustom, raw: s });
 
     setSuggestions([]);
     setShowDropdown(false);
@@ -87,7 +98,7 @@ export default function PlaceAutocompleteInput({
           style={style}
           value={value}
           onChange={handleInputChange}
-          onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
+          onFocus={() => (suggestions.length > 0 || value.trim().length > 0) && setShowDropdown(true)}
           placeholder={placeholder}
           autoComplete="off"
         />
@@ -98,7 +109,7 @@ export default function PlaceAutocompleteInput({
         )}
       </div>
 
-      {/* Suggestion Dropdown matching Mappls Native UI */}
+      {/* Suggestion Dropdown matching Google/Mappls Native UI */}
       {showDropdown && suggestions.length > 0 && (
         <div style={{
           position: 'absolute',
@@ -107,17 +118,17 @@ export default function PlaceAutocompleteInput({
           right: 0,
           background: '#FFFFFF',
           borderRadius: '16px',
-          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.22), 0 2px 10px rgba(0, 0, 0, 0.12)',
+          boxShadow: '0 14px 40px rgba(0, 0, 0, 0.22), 0 2px 10px rgba(0, 0, 0, 0.12)',
           border: '1px solid #CBD5E1',
           zIndex: 999999,
           overflow: 'hidden',
           padding: '6px 0',
-          maxHeight: '260px',
+          maxHeight: '280px',
           overflowY: 'auto',
         }}>
           {suggestions.map((s, idx) => {
-            const title = s.placeName || s.placeAddress;
-            const subtitle = s.placeAddress && s.placeAddress !== title ? s.placeAddress : '';
+            const title = s.placeName;
+            const subtitle = s.placeAddress;
 
             return (
               <div
@@ -130,33 +141,34 @@ export default function PlaceAutocompleteInput({
                   padding: '12px 16px',
                   cursor: 'pointer',
                   borderBottom: idx < suggestions.length - 1 ? '1px solid #F1F5F9' : 'none',
+                  background: s.isCustom ? '#F0FDF4' : '#FFFFFF',
                   transition: 'background 120ms ease',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                onMouseEnter={e => e.currentTarget.style.background = s.isCustom ? '#DCFCE7' : '#F8FAFC'}
+                onMouseLeave={e => e.currentTarget.style.background = s.isCustom ? '#F0FDF4' : '#FFFFFF'}
               >
-                {/* Location Pin Circle */}
+                {/* Icon */}
                 <div style={{
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  background: '#ECFDF5',
+                  background: s.isCustom ? '#10B981' : '#ECFDF5',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  color: '#10B981',
+                  color: s.isCustom ? '#FFFFFF' : '#10B981',
                 }}>
-                  <MapPin size={16} strokeWidth={2} />
+                  {s.isCustom ? <Plus size={16} strokeWidth={2.5} /> : <MapPin size={16} strokeWidth={2} />}
                 </div>
 
                 {/* Text Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '14px', color: '#0F172A', lineHeight: '1.3', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {renderHighlightedName(title, value)}
+                    {s.isCustom ? <span>Use "<strong>{title}</strong>"</span> : renderHighlightedName(title, value)}
                   </div>
                   {subtitle && (
-                    <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '12px', color: s.isCustom ? '#047857' : '#64748B', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {subtitle}
                     </div>
                   )}
