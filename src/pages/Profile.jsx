@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Trophy, Edit3, Check, Flame, Zap, Map } from 'lucide-react';
+import { Star, Trophy, Edit3, Check, Flame, Zap } from 'lucide-react';
 import { getTrips, getProfile, saveProfile, getStreak, calcXP, getLevel } from '../utils/storage';
 import BottomSheet from '../components/BottomSheet';
 
@@ -35,28 +35,19 @@ const ACHIEVEMENTS = [
 
 export default function Profile() {
   const navigate = useNavigate();
-  const [trips,   setTrips]   = useState([]);
-  const [profile, setProfile] = useState({ name:'Pranit', bio:'' });
-  const [editing, setEditing] = useState(false);
-  const [dName,   setDName]   = useState('');
-  const [dBio,    setDBio]    = useState('');
-  const [selectedLoc, setSelectedLoc] = useState(null);
+  const [profile,     setProfile]     = useState(() => getProfile());
+  const [editing,     setEditing]     = useState(false);
+  const [dName,       setDName]       = useState(profile.name || '');
+  const [dBio,        setDBio]        = useState(profile.bio  || '');
   const [statSheet,   setStatSheet]   = useState(null);
-  const [streak,      setStreak]      = useState({ count:0 });
+  const [selectedLoc, setSelectedLoc] = useState(null);
 
-  const allPins   = trips.flatMap(t => (t.pins   || []).map(p => ({ ...p, tripName: t.name, tripId: t.id })));
-  const allPhotos = trips.flatMap(t => (t.highlights || []).map(h => ({ ...h, tripName: t.name, tripId: t.id })));
-
-  useEffect(() => {
-    setTrips(getTrips());
-    setStreak(getStreak());
-    const p = getProfile();
-    setProfile(p); setDName(p.name || ''); setDBio(p.bio || '');
-  }, []);
+  const trips  = getTrips();
+  const streak = getStreak();
 
   function save() {
-    const u = { ...profile, name: dName.trim() || 'Traveller', bio: dBio.trim() };
-    saveProfile(u); setProfile(u); setEditing(false);
+    const updated = saveProfile({ name: dName.trim(), bio: dBio.trim() });
+    setProfile(updated); setEditing(false);
   }
 
   function handleStatClick(label) {
@@ -110,6 +101,7 @@ export default function Profile() {
     { icon:'🇮🇳', label:'States (IN)',val:states,     color:'var(--orange)', bg:'#FFF7ED' },
     { icon:'📅', label:'Days Away',  val:days,       color:'var(--purple)', bg:'var(--purple-50)' },
     { icon:'📍', label:'Places',     val:pins,       color:'var(--rose)',   bg:'var(--rose-50)' },
+    { icon:'🎭', label:'Activities', val:acts,       color:'#6366F1',       bg:'#EEF2FF' },
     { icon:'📸', label:'Photos',     val:photos,     color:'var(--amber)',  bg:'var(--amber-50)' },
   ];
 

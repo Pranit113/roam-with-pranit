@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, MapPin, X, Trash2, Navigation, Layers } from 'lucide-react';
+import { Search, MapPin, X, Trash2, Navigation } from 'lucide-react';
 import { addPin, deletePin, getTrip } from '../utils/storage';
 import PlaceAutocompleteInput from './PlaceAutocompleteInput';
 

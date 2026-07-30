@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Clock, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin } from 'lucide-react';
 
 export default function TripCard({ trip, index = 0 }) {
   const navigate = useNavigate();
@@ -9,7 +9,6 @@ export default function TripCard({ trip, index = 0 }) {
 
   const daysLeft = Math.ceil((new Date(trip.startDate) - new Date()) / (1000*60*60*24));
   const isUpcoming = daysLeft > 0;
-  const isPast = !isUpcoming;
 
   return (
     <motion.div

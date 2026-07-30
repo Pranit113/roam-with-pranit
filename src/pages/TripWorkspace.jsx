@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, ChevronDown, ChevronUp, MoreVertical } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   getTrip, addDay, deleteDay, addActivity, deleteActivity,
   addNote, deleteNote, addExpense, deleteExpense,
@@ -67,32 +67,6 @@ function ItineraryTab({ trip, refresh }) {
   const [actLng,   setActLng]   = useState(null);
   const [actCost,  setActCost]  = useState('');
   const [actNote,  setActNote]  = useState('');
-
-  const [placeSuggestions, setPlaceSuggestions] = useState([]);
-  const [showPlaceSugg,    setShowPlaceSugg]    = useState(false);
-  const placeDebounceRef = useRef(null);
-
-  async function fetchPlaceSuggestions(q) {
-    if (!q || q.length < 2) { setPlaceSuggestions([]); return; }
-    const results = await searchPlaces(q);
-    setPlaceSuggestions(results.slice(0, 6));
-    if (results.length) setShowPlaceSugg(true);
-  }
-
-  function handlePlaceInput(val) {
-    setActPlace(val);
-    setActLat(null); setActLng(null);   // reset coords when typing manually
-    clearTimeout(placeDebounceRef.current);
-    placeDebounceRef.current = setTimeout(() => fetchPlaceSuggestions(val), 350);
-  }
-
-  function selectPlaceSuggestion(s) {
-    setActPlace(s.placeName || s.placeAddress || '');
-    setActLat(parseFloat(s.latitude)  || null);
-    setActLng(parseFloat(s.longitude) || null);
-    setPlaceSuggestions([]);
-    setShowPlaceSugg(false);
-  }
 
   const atype = k => ACT_TYPES.find(t => t.key === k) || ACT_TYPES[2];
 
@@ -633,6 +607,7 @@ function JournalTab({ trip }) {
       if (e) loaded[d.id] = e;
     });
     setEntries(loaded);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.id, days.length]);
 
   function openDay(dayId) {

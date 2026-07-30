@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Plus, ArrowRight, TrendingUp, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bell, Plus, ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getTrips, getProfile } from '../utils/storage';
 
 /* ─── helpers ────────────────────────────────────────────────── */

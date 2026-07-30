@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Flame, Zap } from 'lucide-react';
+import { ArrowLeft, Flame } from 'lucide-react';
 import {
   getTrips, getStreak, calcXP, getLevel,
   getChallengeProgress, getJournalEntries
