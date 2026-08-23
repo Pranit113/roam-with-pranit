@@ -6,6 +6,7 @@ export default function PlaceAutocompleteInput({
   value = '',
   onChange,
   onSelectLocation,
+  onSelectPlace,
   placeholder = 'Search places or enter any location…',
   className = 'input',
   style = {},
@@ -66,7 +67,8 @@ export default function PlaceAutocompleteInput({
     const lng = s.longitude ? parseFloat(s.longitude) : null;
 
     if (onChange) onChange(name);
-    if (onSelectLocation) onSelectLocation({ name, address, lat, lng, isCustom: !!s.isCustom, raw: s });
+    const cb = onSelectLocation || onSelectPlace;
+    if (cb) cb({ name, address, lat, lng, isCustom: !!s.isCustom, raw: s });
 
     setSuggestions([]);
     setShowDropdown(false);

@@ -6,17 +6,34 @@ import { uuid } from '../utils/storage';
 import { SPOT_CATEGORIES } from '../utils/categories';
 
 export default function AddSpotModal({ open, onClose, onSave, existingSpot, dayCount = 3 }) {
-  const [dayNum, setDayNum]         = useState(existingSpot?.dayNum || 1);
-  const [time, setTime]             = useState(existingSpot?.time || '10:00');
-  const [category, setCategory]     = useState(existingSpot?.category || 'viewpoint');
-  const [name, setName]             = useState(existingSpot?.name || '');
-  const [cost, setCost]             = useState(existingSpot?.cost || '');
-  const [ticketCode, setTicketCode] = useState(existingSpot?.ticketCode || '');
-  const [notes, setNotes]           = useState(existingSpot?.notes || '');
-  const [lat, setLat]               = useState(existingSpot?.lat || null);
-  const [lng, setLng]               = useState(existingSpot?.lng || null);
-  const [photos, setPhotos]         = useState(existingSpot?.photos || []);
+  const [dayNum, setDayNum]         = useState(1);
+  const [time, setTime]             = useState('10:00');
+  const [category, setCategory]     = useState('viewpoint');
+  const [name, setName]             = useState('');
+  const [cost, setCost]             = useState('');
+  const [ticketCode, setTicketCode] = useState('');
+  const [notes, setNotes]           = useState('');
+  const [lat, setLat]               = useState(null);
+  const [lng, setLng]               = useState(null);
+  const [photos, setPhotos]         = useState([]);
   const [error, setError]           = useState('');
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    if (open) {
+      setDayNum(existingSpot?.dayNum || 1);
+      setTime(existingSpot?.time || '10:00');
+      setCategory(existingSpot?.category || 'viewpoint');
+      setName(existingSpot?.name || '');
+      setCost(existingSpot?.cost || '');
+      setTicketCode(existingSpot?.ticketCode || '');
+      setNotes(existingSpot?.notes || '');
+      setLat(existingSpot?.lat || null);
+      setLng(existingSpot?.lng || null);
+      setPhotos(existingSpot?.photos || []);
+      setError('');
+    }
+  }, [open, existingSpot]);
 
   const daysList = Array.from({ length: Math.max(dayCount, dayNum) }, (_, i) => i + 1);
 
