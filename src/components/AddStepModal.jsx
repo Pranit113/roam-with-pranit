@@ -33,6 +33,16 @@ export default function AddStepModal({ open, onClose, onSave, initialCoords }) {
   const [photos, setPhotos]       = useState([]);
   const [error, setError]         = useState('');
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    if (initialCoords?.lat != null && initialCoords?.lng != null) {
+      setLat(initialCoords.lat);
+      setLng(initialCoords.lng);
+      if (!name) setName(`Pin (${initialCoords.lat.toFixed(3)}, ${initialCoords.lng.toFixed(3)})`);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCoords, open]);
+
   function handleSelectPlace(place) {
     if (!place) return;
     setName(place.name || place.address);
@@ -42,17 +52,33 @@ export default function AddStepModal({ open, onClose, onSave, initialCoords }) {
 
   function handlePhotoUpload(e) {
     const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    let loaded = 0;
+    const newPhotos = [];
     files.forEach(file => {
       const reader = new FileReader();
       reader.onload = ev => {
-        setPhotos(prev => [...prev, { id: uuid(), url: ev.target.result }]);
+        newPhotos.push({ id: uuid(), url: ev.target.result });
+        loaded++;
+        if (loaded === files.length) {
+          setPhotos(prev => [...prev, ...newPhotos]);
+        }
       };
       reader.readAsDataURL(file);
     });
+    e.target.value = '';
   }
 
   function removePhoto(id) {
     setPhotos(prev => prev.filter(p => p.id !== id));
+  }
+
+  function resetForm() {
+    setName('');
+    setNotes('');
+    setCost('');
+    setPhotos([]);
+    setError('');
   }
 
   function handleSubmit(e) {
@@ -72,6 +98,7 @@ export default function AddStepModal({ open, onClose, onSave, initialCoords }) {
       weather: WEATHERS.find(w => w.key === weather) || null,
     });
 
+    resetForm();
     onClose();
   }
 
