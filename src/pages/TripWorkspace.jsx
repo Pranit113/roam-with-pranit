@@ -16,11 +16,13 @@ import PolarstepsBadges    from '../components/PolarstepsBadges';
 import PolarstepsChecklist from '../components/PolarstepsChecklist';
 import WeatherWidget       from '../components/WeatherWidget';
 import AddStepModal        from '../components/AddStepModal';
+import MustTryGuide        from '../components/MustTryGuide';
 import { exportPolarstepsPDF } from '../utils/polarstepsPdf';
 
 const WORKSPACE_TABS = [
   { id: 'route',     label: '📍 Route & Journal', icon: '📍' },
   { id: 'itinerary', label: '📅 Day Itinerary',    icon: '📅' },
+  { id: 'musttry',   label: '🌟 Must-Try & Photo Spots', icon: '🌟' },
   { id: 'stats',     label: '📊 Trip Stats',      icon: '📊' },
   { id: 'expenses',  label: '🧮 Expenses (Splitwise)', icon: '🧮' },
   { id: 'badges',    label: '🏆 Stamps & Badges',  icon: '🏆' },
@@ -215,6 +217,14 @@ export default function TripWorkspace() {
           <PolarstepsItinerary
             tripId={id}
             onConvertToStep={handleConvertItinToStep}
+          />
+        )}
+
+        {/* Tab 3: Must-Try Locations & Photo Spots */}
+        {activeTab === 'musttry' && (
+          <MustTryGuide
+            destination={trip.destination}
+            onAddToItinerary={handleSaveStep}
           />
         )}
 

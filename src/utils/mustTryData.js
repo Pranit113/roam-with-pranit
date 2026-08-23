@@ -1,0 +1,223 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   mustTryData.js
+   Curated Must-Try Recommendations repository:
+   - 📸 Best Photo Spots & Instagram viewpoints
+   - 🍽️ Famous Restaurants & Local Food Joints
+   - 🏨 Top Hotels & Boutique Stays
+   - 📍 Must-Visit Sightseeing & Landmarks
+   ───────────────────────────────────────────────────────────────────────────── */
+
+export const MUST_TRY_SPOTS = [
+  // ── GOA ──
+  {
+    id: 'mt-goa-1',
+    destination: 'Goa',
+    category: 'photo',
+    title: 'Parra Coconut Tree Road (Dear Zindagi Road)',
+    subtitle: 'Iconic scenic road lined with tall swaying palm trees',
+    typeBadge: '📸 Best Photo Spot',
+    rating: '4.9',
+    reviewsCount: 1420,
+    photoUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+    lat: 15.5786,
+    lng: 73.7788,
+    cost: 'Free',
+    tips: 'Best time for photos is early morning 07:00 AM before traffic starts!',
+    tag: 'Must-Visit Viewpoint',
+  },
+  {
+    id: 'mt-goa-2',
+    destination: 'Goa',
+    category: 'food',
+    title: 'Thalassa Greek Restaurant & Sunset Lounge',
+    subtitle: 'Vagator Cliffside dining with Greek food & ocean sunset views',
+    typeBadge: '🍽️ Famous Food',
+    rating: '4.8',
+    reviewsCount: 2850,
+    photoUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+    lat: 15.6028,
+    lng: 73.7371,
+    cost: '₹1,800 for two',
+    tips: 'Reserve a sunset edge table at least 3 days in advance!',
+    tag: 'Must-Try Dining',
+  },
+  {
+    id: 'mt-goa-3',
+    destination: 'Goa',
+    category: 'hotel',
+    title: 'Ahilya By The Sea (Dolphin Bay)',
+    subtitle: 'Boutique luxury villas overlooking private ocean waters',
+    typeBadge: '🏨 Top Hotel',
+    rating: '4.9',
+    reviewsCount: 680,
+    photoUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
+    lat: 15.4953,
+    lng: 73.8184,
+    cost: '₹14,000 / night',
+    tips: 'Infinity pool overlooking private bay is unmatched for golden hour shots.',
+    tag: 'Luxury Boutique Stay',
+  },
+  {
+    id: 'mt-goa-4',
+    destination: 'Goa',
+    category: 'sight',
+    title: 'Fontainhas Latin Quarter (Old Panjim)',
+    subtitle: 'Colorful Portuguese colonial streets with bright yellow & blue villas',
+    typeBadge: '📍 Must Visit Sight',
+    rating: '4.7',
+    reviewsCount: 1950,
+    photoUrl: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80',
+    lat: 15.4989,
+    lng: 73.8315,
+    cost: 'Free',
+    tips: 'Stroll through 31st January Road for pastel tile portrait photography.',
+    tag: 'Heritage District',
+  },
+
+  // ── KERALA ──
+  {
+    id: 'mt-ker-1',
+    destination: 'Kerala',
+    category: 'photo',
+    title: 'Munnar Tea Garden Hills & Lock Heart Gap',
+    subtitle: 'Rolling emerald green tea plantations shrouded in morning mist',
+    typeBadge: '📸 Best Photo Spot',
+    rating: '4.9',
+    reviewsCount: 3100,
+    photoUrl: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80',
+    lat: 10.0889,
+    lng: 77.0597,
+    cost: 'Free',
+    tips: 'Catch sunrise at 06:15 AM for fog rolling over green tea carpets.',
+    tag: 'Scenic Viewpoint',
+  },
+  {
+    id: 'mt-ker-2',
+    destination: 'Kerala',
+    category: 'food',
+    title: 'Karimpumkala Seafood Restaurant (Kottayam)',
+    subtitle: 'Authentic Kerala Karimeen Pollichathu & Traditional Sadya',
+    typeBadge: '🍽️ Famous Food',
+    rating: '4.8',
+    reviewsCount: 1640,
+    photoUrl: 'https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?auto=format&fit=crop&w=800&q=80',
+    lat: 9.5916,
+    lng: 76.5222,
+    cost: '₹750 for two',
+    tips: 'Order Pearl Spot Fish fried in banana leaf wrapper with coconut curry.',
+    tag: 'Authentic Local Food',
+  },
+  {
+    id: 'mt-ker-3',
+    destination: 'Kerala',
+    category: 'sight',
+    title: 'Alleppey Backwaters Houseboat Cruise',
+    subtitle: 'Serene palm-lined lagoons, floating paddy fields & village canals',
+    typeBadge: '📍 Must Visit Sight',
+    rating: '4.9',
+    reviewsCount: 4200,
+    photoUrl: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80',
+    lat: 9.4981,
+    lng: 76.3388,
+    cost: '₹6,500 / day',
+    tips: 'Book a luxury AC wooden Kettuvalam boat with private chef.',
+    tag: 'Bucket-List Experience',
+  },
+
+  // ── RAJASTHAN ──
+  {
+    id: 'mt-raj-1',
+    destination: 'Rajasthan',
+    category: 'photo',
+    title: 'Hawa Mahal Wind View Cafe (Jaipur)',
+    subtitle: 'Rooftop cafe viewpoint overlooking the pink honeycomb palace facade',
+    typeBadge: '📸 Best Photo Spot',
+    rating: '4.9',
+    reviewsCount: 3890,
+    photoUrl: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80',
+    lat: 26.9239,
+    lng: 75.8267,
+    cost: '₹350 cafe bill',
+    tips: 'Visit at 08:30 AM when morning sun casts golden light directly on Hawa Mahal.',
+    tag: 'Iconic Landmark Spot',
+  },
+  {
+    id: 'mt-raj-2',
+    destination: 'Rajasthan',
+    category: 'hotel',
+    title: 'Taj Lake Palace (Udaipur)',
+    subtitle: 'White marble palace floating in the middle of Lake Pichola',
+    typeBadge: '🏨 Top Hotel',
+    rating: '5.0',
+    reviewsCount: 1850,
+    photoUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
+    lat: 24.5753,
+    lng: 73.6800,
+    cost: '₹38,000 / night',
+    tips: 'Boat arrival greeting with rose petals is unforgettable for couples.',
+    tag: 'Royal Heritage Resort',
+  },
+
+  // ── PARIS ──
+  {
+    id: 'mt-par-1',
+    destination: 'Paris',
+    category: 'photo',
+    title: 'Trocadéro Plaza Eiffel Tower Terrace',
+    subtitle: 'Classic unobstructed panoramic view of the Eiffel Tower',
+    typeBadge: '📸 Best Photo Spot',
+    rating: '4.9',
+    reviewsCount: 6100,
+    photoUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
+    lat: 48.8624,
+    lng: 2.2872,
+    cost: 'Free',
+    tips: 'Golden hour at sunset + 5-minute sparkling light show every hour after dark.',
+    tag: 'World Famous Viewpoint',
+  },
+  {
+    id: 'mt-par-2',
+    destination: 'Paris',
+    category: 'food',
+    title: 'Café de Flore & Carette Pastry (Saint-Germain)',
+    subtitle: 'Legendary Parisian hot chocolate, croissants & sidewalk café dining',
+    typeBadge: '🍽️ Famous Food',
+    rating: '4.8',
+    reviewsCount: 3400,
+    photoUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+    lat: 48.8542,
+    lng: 2.3326,
+    cost: '€22 per person',
+    tips: 'Dip freshly baked croissants in Carette’s signature thick whipped hot chocolate.',
+    tag: 'Iconic French Bakery',
+  },
+
+  // ── BALI ──
+  {
+    id: 'mt-bal-1',
+    destination: 'Bali',
+    category: 'photo',
+    title: 'Tegallalang Rice Terrace Jungle Swing (Ubud)',
+    subtitle: 'Soar high above cascading lush rice terraces surrounded by palm trees',
+    typeBadge: '📸 Best Photo Spot',
+    rating: '4.9',
+    reviewsCount: 4700,
+    photoUrl: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+    lat: -8.4312,
+    lng: 115.2792,
+    cost: 'IDR 150k (~₹800)',
+    tips: 'Rent a flowing red dress at the entrance for dramatic swing photos.',
+    tag: 'Instagram Viral Spot',
+  },
+];
+
+export function getMustTrySpots(filterCategory = 'all', destination = null) {
+  let list = MUST_TRY_SPOTS;
+  if (destination) {
+    list = list.filter(s => s.destination.toLowerCase().includes(destination.toLowerCase()));
+  }
+  if (filterCategory !== 'all') {
+    list = list.filter(s => s.category === filterCategory);
+  }
+  return list;
+}
