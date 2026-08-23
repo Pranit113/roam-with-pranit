@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Camera, Plus, X, Download, FileText, ZoomIn } from 'lucide-react';
+import { ArrowLeft, Camera, Plus, X, Download, FileText, ZoomIn, Clock, Trash2 } from 'lucide-react';
 import {
   getTLTrip, getPlace, updateTLTrip, calcTripTotal,
 } from '../utils/tlStorage';
 import { uuid } from '../utils/storage';
 import { exportTripPDF } from '../utils/pdf';
+import AddSpotModal from '../components/AddSpotModal';
+import { SPOT_CATEGORIES } from '../utils/categories';
 
 const INR = n => `₹${(Number(n) || 0).toLocaleString('en-IN')}`;
 const EXPENSE_CATS = [
@@ -127,70 +129,195 @@ function PhotosTab({ trip, onChange }) {
 
 /* ─── Spots Tab ──────────────────────────────────────────────────────────────── */
 function SpotsTab({ trip, onChange }) {
-  const [input, setInput] = useState('');
-
-  function addSpot() {
-    if (!input.trim()) return;
-    const spot    = { id: uuid(), name: input.trim() };
-    const spots   = [...(trip.spots || []), spot];
-    const updated = updateTLTrip(trip.id, { spots });
-    onChange(updated);
-    setInput('');
-  }
-
-  function deleteSpot(spotId) {
-    const spots   = (trip.spots || []).filter(s => s.id !== spotId);
-    const updated = updateTLTrip(trip.id, { spots });
-    onChange(updated);
-  }
+  const [modalOpen, setModalOpen]     = useState(false);
+  const [editingSpot, setEditingSpot] = useState(null);
+  const [filterDay, setFilterDay]     = useState('all');
 
   const spots = trip.spots || [];
 
+  function handleSaveSpot(spotData) {
+    let updatedSpots;
+    const exists = spots.some(s => s.id === spotData.id);
+    if (exists) {
+      updatedSpots = spots.map(s => s.id === spotData.id ? spotData : s);
+    } else {
+      updatedSpots = [...spots, spotData];
+    }
+
+    const updated = updateTLTrip(trip.id, { spots: updatedSpots });
+    onChange(updated);
+    setEditingSpot(null);
+  }
+
+  function deleteSpot(spotId, e) {
+    e?.stopPropagation();
+    const updatedSpots = spots.filter(s => s.id !== spotId);
+    const updated = updateTLTrip(trip.id, { spots: updatedSpots });
+    onChange(updated);
+  }
+
+  // Extract unique days
+  const days = Array.from(new Set(spots.map(s => s.dayNum || 1))).sort((a, b) => a - b);
+  const maxDay = days.length ? Math.max(...days) : 1;
+
+  // Filter & sort spots chronologically by day and time
+  const filtered = (filterDay === 'all' ? spots : spots.filter(s => (s.dayNum || 1) === Number(filterDay)))
+    .sort((a, b) => {
+      const dayDiff = (a.dayNum || 1) - (b.dayNum || 1);
+      if (dayDiff !== 0) return dayDiff;
+      return (a.time || '00:00').localeCompare(b.time || '00:00');
+    });
+
+  // Group by day for timeline display
+  const groupedByDay = {};
+  filtered.forEach(s => {
+    const d = s.dayNum || 1;
+    if (!groupedByDay[d]) groupedByDay[d] = [];
+    groupedByDay[d].push(s);
+  });
+
   return (
     <div className="tl-tab-content">
-      <div className="tl-spot-input-row">
-        <input
-          className="tl-form-input tl-spot-input"
-          placeholder="e.g. Baga Beach, Fort Aguada…"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && addSpot()}
-        />
+      <AddSpotModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditingSpot(null); }}
+        onSave={handleSaveSpot}
+        existingSpot={editingSpot}
+        dayCount={maxDay}
+      />
+
+      {/* Top Filter & Add Bar */}
+      <div className="tl-spots-bar">
+        <div className="tl-spots-filter-scroll">
+          <button
+            className={`tl-spot-filter-chip ${filterDay === 'all' ? 'active' : ''}`}
+            onClick={() => setFilterDay('all')}
+          >
+            All Days ({spots.length})
+          </button>
+          {days.map(d => (
+            <button
+              key={d}
+              className={`tl-spot-filter-chip ${filterDay === String(d) ? 'active' : ''}`}
+              onClick={() => setFilterDay(String(d))}
+            >
+              Day {d}
+            </button>
+          ))}
+        </div>
+
         <motion.button
           className="tl-btn-primary tl-btn-sm"
-          onClick={addSpot}
+          onClick={() => { setEditingSpot(null); setModalOpen(true); }}
           whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
         >
-          <Plus size={16} />
+          <Plus size={15} /> Add Detailed Spot
         </motion.button>
       </div>
-      <p className="tl-tab-hint">Press Enter or + to add</p>
 
       {spots.length === 0 ? (
         <div className="tl-tab-empty">
           <div className="tl-tab-empty-icon">📍</div>
           <div>No spots recorded yet</div>
+          <p className="tl-tab-hint" style={{ marginTop: 4 }}>Add day-wise spots with exact times, categories, ticket codes & notes!</p>
+          <motion.button
+            className="tl-btn-primary"
+            onClick={() => { setEditingSpot(null); setModalOpen(true); }}
+            style={{ marginTop: 12 }}
+          >
+            <Plus size={16} /> Add First Spot
+          </motion.button>
         </div>
       ) : (
-        <div className="tl-spot-list">
-          {spots.map((spot, i) => (
-            <motion.div
-              key={spot.id}
-              className="tl-spot-row"
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.04 }}
-            >
-              <span className="tl-spot-icon">📍</span>
-              <span className="tl-spot-name">{spot.name}</span>
-              <button className="tl-spot-del" onClick={() => deleteSpot(spot.id)}><X size={14} /></button>
-            </motion.div>
-          ))}
+        <div className="tl-day-timeline-container">
+          {Object.keys(groupedByDay).map(dayKey => {
+            const daySpots = groupedByDay[dayKey];
+            return (
+              <div key={dayKey} className="tl-day-group">
+                <div className="tl-day-group-header">
+                  <span className="tl-day-group-badge">Day {dayKey}</span>
+                  <span className="tl-day-group-count">{daySpots.length} spot{daySpots.length !== 1 ? 's' : ''}</span>
+                </div>
+
+                <div className="tl-spot-cards-list">
+                  {daySpots.map((spot, i) => {
+                    const catObj = SPOT_CATEGORIES.find(c => c.key === spot.category) || SPOT_CATEGORIES[6];
+                    return (
+                      <motion.div
+                        key={spot.id}
+                        className="tl-spot-card-rich"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        onClick={() => { setEditingSpot(spot); setModalOpen(true); }}
+                      >
+                        {/* Time & Category Badge */}
+                        <div className="tl-spot-card-top">
+                          <div className="tl-spot-time-tag">
+                            <Clock size={12} /> {spot.time || '10:00'}
+                          </div>
+                          <span
+                            className="tl-spot-cat-badge"
+                            style={{ background: catObj.bg, color: catObj.color }}
+                          >
+                            {catObj.icon} {catObj.label}
+                          </span>
+                        </div>
+
+                        {/* Title & Location */}
+                        <div className="tl-spot-card-name">{spot.name}</div>
+
+                        {/* Metadata Tags (Ticket code, Cost) */}
+                        <div className="tl-spot-card-tags">
+                          {spot.ticketCode && (
+                            <span className="tl-spot-tag-ticket">
+                              🎟️ Ref: {spot.ticketCode}
+                            </span>
+                          )}
+                          {spot.cost > 0 && (
+                            <span className="tl-spot-tag-cost">
+                              {INR(spot.cost)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Notes */}
+                        {spot.notes && (
+                          <div className="tl-spot-card-notes">
+                            {spot.notes}
+                          </div>
+                        )}
+
+                        {/* Photos */}
+                        {spot.photos?.length > 0 && (
+                          <div className="tl-spot-card-photos">
+                            {spot.photos.map(p => (
+                              <img key={p.id} src={p.url} alt="" className="tl-spot-photo-thumb" />
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Delete Action */}
+                        <button
+                          className="tl-spot-card-del"
+                          onClick={e => deleteSpot(spot.id, e)}
+                          title="Delete Spot"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
+
 
 /* ─── Expenses Tab ───────────────────────────────────────────────────────────── */
 function ExpensesTab({ trip, onChange, place }) {

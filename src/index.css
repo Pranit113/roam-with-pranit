@@ -1228,5 +1228,39 @@ select.input{
 .ps-photo-remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer; }
 .ps-form-error { background: rgba(244,63,94,0.18); border: 1px solid rgba(244,63,94,0.4); border-radius: 10px; padding: 10px; font-size: 12px; color: #FCA5A5; }
 .ps-modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
+/* ── Detailed Day-Wise Spots Timeline Styles ── */
+.tl-spots-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.tl-spots-filter-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.tl-spots-filter-scroll::-webkit-scrollbar { display: none; }
+.tl-spot-filter-chip { background: var(--g100); border: 1.5px solid var(--border); border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 700; color: var(--t2); cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap; }
+.tl-spot-filter-chip.active { background: var(--em-50); border-color: var(--em); color: var(--em); }
+.tl-day-timeline-container { display: flex; flex-direction: column; gap: 20px; }
+.tl-day-group { display: flex; flex-direction: column; gap: 10px; }
+.tl-day-group-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--border); padding-bottom: 6px; }
+.tl-day-group-badge { background: linear-gradient(135deg, #10B981, #0EA5E9); color: #fff; border-radius: 8px; padding: 3px 10px; font-size: 12px; font-weight: 900; }
+.tl-day-group-count { font-size: 12px; color: var(--t3); font-weight: 600; }
+.tl-spot-cards-list { display: flex; flex-direction: column; gap: 10px; }
+.tl-spot-card-rich { background: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); position: relative; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid var(--border); }
+.tl-spot-card-rich:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.1); }
+.tl-spot-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.tl-spot-time-tag { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; color: var(--t3); background: var(--g50); padding: 2px 8px; border-radius: 6px; }
+.tl-spot-cat-badge { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 3px 10px; display: flex; align-items: center; gap: 4px; }
+.tl-spot-card-name { font-size: 16px; font-weight: 900; color: var(--t1); margin-bottom: 6px; }
+.tl-spot-card-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.tl-spot-tag-ticket { background: #FEF3C7; color: #D97706; border: 1px solid #FDE68A; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+.tl-spot-tag-cost { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 800; }
+.tl-spot-card-notes { font-size: 12px; color: var(--t2); line-height: 1.4; background: var(--g50); border-radius: 8px; padding: 8px 10px; margin-top: 4px; }
+.tl-spot-card-photos { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; }
+.tl-spot-photo-thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
+.tl-spot-card-del { position: absolute; top: 14px; right: 14px; background: none; border: none; color: var(--t3); cursor: pointer; padding: 4px; border-radius: 6px; }
+.tl-spot-card-del:hover { color: var(--rose); background: var(--rose-50); }
+.tl-category-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.tl-cat-pill { border: 1.5px solid transparent; border-radius: 10px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
+.tl-spot-photo-uploader { display: flex; flex-direction: column; gap: 8px; }
+.tl-spot-photo-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.tl-spot-photo-item { width: 60px; height: 60px; border-radius: 10px; overflow: hidden; position: relative; }
+.tl-spot-photo-item img { width: 100%; height: 100%; object-fit: cover; }
+
 .ps-empty-hint { font-size: 12px; color: rgba(255,255,255,0.4); font-style: italic; text-align: center; padding: 12px 0; }
 
