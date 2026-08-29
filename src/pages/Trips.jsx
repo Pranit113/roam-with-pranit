@@ -169,11 +169,14 @@ export default function Trips() {
 
       {/* Page Header */}
       <div className="page-hd">
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div>
             <div className="page-hd-title">My Trips 🗺️</div>
             <div className="page-hd-sub">{trips.length} adventure{trips.length !== 1 ? 's' : ''}</div>
           </div>
+          <button className="btn btn-primary" onClick={() => setOpen(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:99 }}>
+            <Plus size={16} /> Plan Trip
+          </button>
         </div>
         {trips.length > 0 && (
           <div style={{ display:'flex', gap:8, overflowX:'auto', marginTop:14, paddingBottom:2, scrollbarWidth:'none' }}>
