@@ -40,12 +40,12 @@ export default function App() {
           path="/auth"
           element={
             user
-              ? <Navigate to="/travellist" replace />
+              ? <Navigate to="/home" replace />
               : <Auth onAuth={u => setUser(u)} />
           }
         />
 
-        {/* ── TravelList (new bucket-list system) ───────────────────────── */}
+        {/* ── TravelList (bucket-list system) ───────────────────────────── */}
         <Route
           path="/travellist"
           element={
@@ -71,7 +71,7 @@ export default function App() {
           }
         />
 
-        {/* ── Existing trip planner (with bottom Navbar) ────────────────── */}
+        {/* ── Main trip planner (with 5-tab Navbar) ─────────────────────── */}
         <Route
           path="/*"
           element={
@@ -80,7 +80,7 @@ export default function App() {
                 <Navbar />
                 <div className="app-shell">
                   <Routes>
-                    <Route path="/"              element={<Navigate to="/travellist" replace />} />
+                    <Route path="/"              element={<Navigate to="/home" replace />} />
                     <Route path="/home"          element={<Home />} />
                     <Route path="/trips"         element={<Trips />} />
                     <Route path="/trip/:id"      element={<TripWorkspace />} />
