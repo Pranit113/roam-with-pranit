@@ -37,8 +37,10 @@ export default function Profile() {
   const navigate = useNavigate();
   const [profile,     setProfile]     = useState(() => getProfile());
   const [editing,     setEditing]     = useState(false);
-  const [dName,       setDName]       = useState(profile.name || '');
-  const [dBio,        setDBio]        = useState(profile.bio  || '');
+  const [dName,       setDName]       = useState(profile.name        || '');
+  const [dBio,        setDBio]        = useState(profile.bio         || '');
+  const [dCountry,    setDCountry]    = useState(profile.homeCountry || '');
+  const [dCity,       setDCity]       = useState(profile.homeCity    || '');
   const [statSheet,   setStatSheet]   = useState(null);
   const [selectedLoc, setSelectedLoc] = useState(null);
 
@@ -46,9 +48,17 @@ export default function Profile() {
   const streak = getStreak();
 
   function save() {
-    const updated = saveProfile({ name: dName.trim(), bio: dBio.trim() });
-    setProfile(updated); setEditing(false);
+    // saveProfile now returns the merged saved object (bug was it returned void)
+    const updated = saveProfile({
+      name: dName.trim(),
+      bio: dBio.trim(),
+      homeCountry: dCountry.trim(),
+      homeCity: dCity.trim(),
+    });
+    setProfile(updated);
+    setEditing(false);
   }
+
 
   function handleStatClick(label) {
     const m = {
@@ -126,6 +136,12 @@ export default function Profile() {
             <input value={dBio} onChange={e => setDBio(e.target.value)}
               style={{ background:'rgba(255,255,255,.2)', border:'1.5px solid rgba(255,255,255,.5)', borderRadius:10, padding:'7px 14px', color:'white', fontFamily:'Outfit', fontSize:13, textAlign:'center', width:260, outline:'none' }}
               placeholder="Short bio…" />
+            <input value={dCity} onChange={e => setDCity(e.target.value)}
+              style={{ background:'rgba(255,255,255,.2)', border:'1.5px solid rgba(255,255,255,.5)', borderRadius:10, padding:'7px 14px', color:'white', fontFamily:'Outfit', fontSize:13, textAlign:'center', width:260, outline:'none' }}
+              placeholder="Home city (e.g. Mumbai)" />
+            <input value={dCountry} onChange={e => setDCountry(e.target.value)}
+              style={{ background:'rgba(255,255,255,.2)', border:'1.5px solid rgba(255,255,255,.5)', borderRadius:10, padding:'7px 14px', color:'white', fontFamily:'Outfit', fontSize:13, textAlign:'center', width:260, outline:'none' }}
+              placeholder="Home country (e.g. India)" />
             <button onClick={save} style={{ background:'white', color:'var(--em)', border:'none', borderRadius:10, padding:'8px 20px', fontFamily:'Outfit', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
               <Check size={14} /> Save Profile
             </button>
@@ -134,6 +150,11 @@ export default function Profile() {
           <>
             <div style={{ fontSize:22, fontWeight:900, color:'white' }}>{profile.name || 'Pranit'}</div>
             {profile.bio && <div style={{ fontSize:13, color:'rgba(255,255,255,.85)', marginTop:4 }}>{profile.bio}</div>}
+            {(profile.homeCity || profile.homeCountry) && (
+              <div style={{ fontSize:12, color:'rgba(255,255,255,.8)', marginTop:3 }}>
+                🏠 {[profile.homeCity, profile.homeCountry].filter(Boolean).join(', ')}
+              </div>
+            )}
             <div style={{ fontSize:12, color:'rgba(255,255,255,.7)', marginTop:6 }}>{done} completed · {totalTrips} total trips</div>
             <button onClick={() => setEditing(true)} style={{ marginTop:12, background:'rgba(255,255,255,.18)', border:'1px solid rgba(255,255,255,.4)', borderRadius:10, padding:'8px 18px', color:'white', fontFamily:'Outfit', fontSize:13, fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
               <Edit3 size={13} /> Edit Profile
@@ -141,6 +162,7 @@ export default function Profile() {
           </>
         )}
       </div>
+
 
       {/* ── Stats card (overlapping hero) ── */}
       <div style={{ margin:'-48px 20px 24px', background:'white', borderRadius:22, padding:'20px 16px', boxShadow:'var(--sh-lg)', position:'relative', zIndex:5 }}>

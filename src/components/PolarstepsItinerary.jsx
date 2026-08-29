@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, ArrowUpRight } from 'lucide-react';
 import { getPolarItinerary, savePolarItinerary, formatCurrency } from '../utils/polarstepsStorage';
+import { upsertTransaction, deleteTransactionByActivityId, getTrip } from '../utils/storage';
 import PlaceAutocompleteInput from './PlaceAutocompleteInput';
 import { uuid } from '../utils/storage';
 
@@ -76,6 +77,23 @@ export default function PolarstepsItinerary({ tripId, onConvertToStep }) {
     });
 
     updateDays(updated);
+
+    // Auto-create transaction if cost > 0
+    if (activity.cost > 0) {
+      const trip = getTrip(tripId);
+      upsertTransaction({
+        activityId: activity.id,
+        tripId,
+        tripName: trip?.name || trip?.destination || 'Trip',
+        label: activity.name,
+        amount: activity.cost,
+        category: 'activity',
+        date: activeDay?.date || new Date().toISOString().split('T')[0],
+        source: 'itinerary',
+        loc: activity.loc,
+      });
+    }
+
     setActName('');
     setActCost('');
     setActLoc('');
@@ -94,6 +112,8 @@ export default function PolarstepsItinerary({ tripId, onConvertToStep }) {
       };
     });
     updateDays(updated);
+    // Remove associated transaction
+    deleteTransactionByActivityId(actId);
   }
 
   const activeDay = days.find(d => d.id === activeDayId) || days[0];

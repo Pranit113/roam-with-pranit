@@ -1,58 +1,47 @@
-import React from 'react';
+﻿import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Briefcase, User, Trophy, Map } from 'lucide-react';
+import { Home, Briefcase, User, Map, CreditCard } from 'lucide-react';
 import { getProfile } from '../utils/storage';
 
 const NAV_ITEMS = [
-  { path:'/',           icon: Home,     label:'Home'       },
-  { path:'/trips',      icon: Briefcase,label:'Trips'      },
-  { path:'/challenges', icon: Trophy,   label:'Challenges' },
-  { path:'/profile',    icon: User,     label:'Profile'    },
+  { path: '/home',         icon: Home,       label: 'Home'         },
+  { path: '/trips',        icon: Briefcase,  label: 'Trips'        },
+  { path: '/scratchmap',   icon: Map,        label: 'Map'          },
+  { path: '/transactions', icon: CreditCard, label: 'Wallet'       },
+  { path: '/profile',      icon: User,       label: 'Profile'      },
 ];
 
 export default function Navbar() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const profile  = getProfile();
+  const navigate  = useNavigate();
+  const profile   = getProfile();
 
-  /* hide on trip workspace and scratch map (they have back buttons) */
   if (location.pathname.startsWith('/trip/')) return null;
-  if (location.pathname === '/scratchmap') return null;
+  if (location.pathname === '/scratchmap')    return null;
 
   const isActive = (path) =>
-    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+    path === '/home'
+      ? location.pathname === '/home' || location.pathname === '/'
+      : location.pathname.startsWith(path);
 
   return (
     <>
-      {/* ── Desktop Sidebar (≥ 1024px) ── */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           🌿 RoamWith<span>Pranit</span>
         </div>
-
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ path, icon: Icon, label }) => {
-            const active = isActive(path);
-            return (
-              <button
-                key={path}
-                className={`sidebar-item${active ? ' active' : ''}`}
-                onClick={() => navigate(path)}
-              >
-                <div className="sidebar-ic"><Icon size={20} /></div>
-                <span className="sidebar-lbl">{label}</span>
-              </button>
-            );
-          })}
-          <button
-            className={`sidebar-item${isActive('/scratchmap') ? ' active' : ''}`}
-            onClick={() => navigate('/scratchmap')}
-          >
-            <div className="sidebar-ic"><Map size={20} /></div>
-            <span className="sidebar-lbl">Scratch Map</span>
-          </button>
+          {NAV_ITEMS.map(({ path, icon: Icon, label }) => (
+            <button
+              key={path}
+              className={`sidebar-item${isActive(path) ? ' active' : ''}`}
+              onClick={() => navigate(path)}
+            >
+              <div className="sidebar-ic"><Icon size={20} /></div>
+              <span className="sidebar-lbl">{label}</span>
+            </button>
+          ))}
         </nav>
-
         <div className="sidebar-user" onClick={() => navigate('/profile')}>
           <div className="sidebar-avatar">
             {(profile.name || 'P')[0].toUpperCase()}
@@ -65,18 +54,13 @@ export default function Navbar() {
           </div>
         </div>
       </aside>
-
-      {/* ── Mobile Bottom Nav (< 1024px) ── */}
       <nav className="bot-nav">
-        {NAV_ITEMS.map(({ path, icon: Icon, label }) => {
-          const active = isActive(path);
-          return (
-            <button key={path} className={`nav-item${active ? ' active' : ''}`} onClick={() => navigate(path)}>
-              <div className="nav-ic"><Icon size={22} /></div>
-              <span className="nav-lbl">{label}</span>
-            </button>
-          );
-        })}
+        {NAV_ITEMS.map(({ path, icon: Icon, label }) => (
+          <button key={path} className={`nav-item${isActive(path) ? ' active' : ''}`} onClick={() => navigate(path)}>
+            <div className="nav-ic"><Icon size={21} /></div>
+            <span className="nav-lbl">{label}</span>
+          </button>
+        ))}
       </nav>
     </>
   );

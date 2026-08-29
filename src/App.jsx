@@ -12,6 +12,7 @@ import TripWorkspace   from './pages/TripWorkspace';
 import Profile         from './pages/Profile';
 import Challenges      from './pages/Challenges';
 import ScratchMap      from './pages/ScratchMap';
+import Transactions    from './pages/Transactions';
 import './index.css';
 
 /* ── Auth-guarded wrapper ────────────────────────────────────────────────── */
@@ -79,14 +80,14 @@ export default function App() {
                 <Navbar />
                 <div className="app-shell">
                   <Routes>
-                    {/* Default: redirect / → /travellist */}
-                    <Route path="/"           element={<Navigate to="/travellist" replace />} />
-                    <Route path="/home"       element={<Home />} />
-                    <Route path="/trips"      element={<Trips />} />
-                    <Route path="/trip/:id"   element={<TripWorkspace />} />
-                    <Route path="/profile"    element={<Profile />} />
-                    <Route path="/challenges" element={<Challenges />} />
-                    <Route path="/scratchmap" element={<ScratchMap />} />
+                    <Route path="/"              element={<Navigate to="/travellist" replace />} />
+                    <Route path="/home"          element={<Home />} />
+                    <Route path="/trips"         element={<Trips />} />
+                    <Route path="/trip/:id"      element={<TripWorkspace />} />
+                    <Route path="/profile"       element={<Profile />} />
+                    <Route path="/challenges"    element={<Challenges />} />
+                    <Route path="/scratchmap"    element={<ScratchMap />} />
+                    <Route path="/transactions"  element={<Transactions />} />
                   </Routes>
                 </div>
               </div>

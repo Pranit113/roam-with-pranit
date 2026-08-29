@@ -1,210 +1,207 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { getTrips } from '../utils/storage';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { getTrips, getGeoCache, setGeoCache } from "../utils/storage";
+import { getPolarSteps } from "../utils/polarstepsStorage";
 
-const INDIA_STATES = [
-  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa',
-  'Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala',
-  'Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland',
-  'Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura',
-  'Uttar Pradesh','Uttarakhand','West Bengal','Delhi',
-];
+// Fix default icon paths for Vite
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 const WORLD_COUNTRIES = [
-  { name:'India',          emoji:'🇮🇳', region:'Asia' },
-  { name:'United States',  emoji:'🇺🇸', region:'Americas' },
-  { name:'United Kingdom', emoji:'🇬🇧', region:'Europe' },
-  { name:'France',         emoji:'🇫🇷', region:'Europe' },
-  { name:'Germany',        emoji:'🇩🇪', region:'Europe' },
-  { name:'Italy',          emoji:'🇮🇹', region:'Europe' },
-  { name:'Spain',          emoji:'🇪🇸', region:'Europe' },
-  { name:'Japan',          emoji:'🇯🇵', region:'Asia' },
-  { name:'China',          emoji:'🇨🇳', region:'Asia' },
-  { name:'Australia',      emoji:'🇦🇺', region:'Oceania' },
-  { name:'Brazil',         emoji:'🇧🇷', region:'Americas' },
-  { name:'South Africa',   emoji:'🇿🇦', region:'Africa' },
-  { name:'Egypt',          emoji:'🇪🇬', region:'Africa' },
-  { name:'UAE',            emoji:'🇦🇪', region:'Middle East' },
-  { name:'Singapore',      emoji:'🇸🇬', region:'Asia' },
-  { name:'Thailand',       emoji:'🇹🇭', region:'Asia' },
-  { name:'Nepal',          emoji:'🇳🇵', region:'Asia' },
-  { name:'Sri Lanka',      emoji:'🇱🇰', region:'Asia' },
-  { name:'Maldives',       emoji:'🇲🇻', region:'Asia' },
-  { name:'Mexico',         emoji:'🇲🇽', region:'Americas' },
-  { name:'Canada',         emoji:'🇨🇦', region:'Americas' },
-  { name:'Russia',         emoji:'🇷🇺', region:'Europe/Asia' },
-  { name:'Turkey',         emoji:'🇹🇷', region:'Europe/Asia' },
-  { name:'Greece',         emoji:'🇬🇷', region:'Europe' },
-  { name:'Portugal',       emoji:'🇵🇹', region:'Europe' },
-  { name:'Switzerland',    emoji:'🇨🇭', region:'Europe' },
-  { name:'Netherlands',    emoji:'🇳🇱', region:'Europe' },
-  { name:'Indonesia',      emoji:'🇮🇩', region:'Asia' },
-  { name:'Malaysia',       emoji:'🇲🇾', region:'Asia' },
-  { name:'Vietnam',        emoji:'🇻🇳', region:'Asia' },
-  { name:'South Korea',    emoji:'🇰🇷', region:'Asia' },
-  { name:'Pakistan',       emoji:'🇵🇰', region:'Asia' },
-  { name:'Bangladesh',     emoji:'🇧🇩', region:'Asia' },
-  { name:'Bhutan',         emoji:'🇧🇹', region:'Asia' },
-  { name:'Kenya',          emoji:'🇰🇪', region:'Africa' },
-  { name:'Morocco',        emoji:'🇲🇦', region:'Africa' },
-  { name:'New Zealand',    emoji:'🇳🇿', region:'Oceania' },
-  { name:'Argentina',      emoji:'🇦🇷', region:'Americas' },
-  { name:'Peru',           emoji:'🇵🇪', region:'Americas' },
-  { name:'Colombia',       emoji:'🇨🇴', region:'Americas' },
+  { name:"India",emoji:"🇮🇳" },{ name:"United States",emoji:"🇺🇸" },{ name:"United Kingdom",emoji:"🇬🇧" },
+  { name:"France",emoji:"🇫🇷" },{ name:"Germany",emoji:"🇩🇪" },{ name:"Italy",emoji:"🇮🇹" },
+  { name:"Spain",emoji:"🇪🇸" },{ name:"Japan",emoji:"🇯🇵" },{ name:"Australia",emoji:"🇦🇺" },
+  { name:"Brazil",emoji:"🇧🇷" },{ name:"UAE",emoji:"🇦🇪" },{ name:"Singapore",emoji:"🇸🇬" },
+  { name:"Thailand",emoji:"🇹🇭" },{ name:"Nepal",emoji:"🇳🇵" },{ name:"Sri Lanka",emoji:"🇱🇰" },
+  { name:"Maldives",emoji:"🇲🇻" },{ name:"Canada",emoji:"🇨🇦" },{ name:"Turkey",emoji:"🇹🇷" },
+  { name:"Greece",emoji:"🇬🇷" },{ name:"Portugal",emoji:"🇵🇹" },{ name:"Switzerland",emoji:"🇨🇭" },
+  { name:"Indonesia",emoji:"🇮🇩" },{ name:"Malaysia",emoji:"🇲🇾" },{ name:"Vietnam",emoji:"🇻🇳" },
+  { name:"South Korea",emoji:"🇰🇷" },{ name:"Kenya",emoji:"🇰🇪" },{ name:"Morocco",emoji:"🇲🇦" },
+  { name:"New Zealand",emoji:"🇳🇿" },{ name:"Mexico",emoji:"🇲🇽" },{ name:"Argentina",emoji:"🇦🇷" },
 ];
+
+async function geocode(query) {
+  const cache = getGeoCache();
+  const key = query.toLowerCase().trim();
+  if (cache[key]) return cache[key];
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+    const data = await res.json();
+    if (data?.[0]) {
+      const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      setGeoCache(key, coords);
+      return coords;
+    }
+  } catch {}
+  return null;
+}
 
 export default function ScratchMap() {
   const navigate = useNavigate();
-  const [trips,      setTrips]      = useState([]);
-  const [activeView, setActiveView] = useState('world');
-  const [search,     setSearch]     = useState('');
+  const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef([]);
+  const [trips, setTrips] = useState([]);
+  const [pins, setPins] = useState([]);
+  const [activeView, setActiveView] = useState("map");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => { setTrips(getTrips()); }, []);
 
-  const visitedCountries = new Set(
-    trips.filter(t=>t.status==='completed').map(t=>t.country).filter(Boolean)
-  );
-  const plannedCountries = new Set(
-    trips.filter(t=>t.status!=='completed').map(t=>t.country).filter(Boolean)
-  );
-  const visitedStates = new Set(
-    trips.filter(t=>t.status==='completed').map(t=>t.stateOfIndia).filter(Boolean)
-  );
-  const plannedStates = new Set(
-    trips.filter(t=>t.status!=='completed').map(t=>t.stateOfIndia).filter(Boolean)
-  );
+  // Collect all coordinates: from polarsteps route steps + geocode destinations
+  useEffect(() => {
+    if (!trips.length) { setLoading(false); return; }
+    const collected = [];
 
-  const filteredCountries = WORLD_COUNTRIES.filter(c=>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
-  const filteredStates = INDIA_STATES.filter(s=>
-    s.toLowerCase().includes(search.toLowerCase())
-  );
+    // 1. Pull route steps (have exact coords)
+    trips.forEach(trip => {
+      const steps = getPolarSteps(trip.id);
+      steps.forEach(s => {
+        if (s.lat && s.lng) {
+          collected.push({ lat: s.lat, lng: s.lng, tripId: trip.id, tripName: trip.name || trip.destination, status: trip.status, emoji: trip.emoji || "✈️", label: s.name || trip.destination, destination: trip.destination, type: "step" });
+        }
+      });
+    });
 
-  const pctWorld = Math.round((visitedCountries.size / WORLD_COUNTRIES.length)*100);
-  const pctIndia = Math.round((visitedStates.size / 29)*100);
+    // 2. Geocode trip destinations that have no steps
+    const tripsWithoutSteps = trips.filter(t => !getPolarSteps(t.id).length && t.destination);
+    let pending = tripsWithoutSteps.length;
+    if (!pending) { setPins(collected); setLoading(false); return; }
+
+    tripsWithoutSteps.forEach(trip => {
+      geocode(trip.destination).then(coords => {
+        if (coords) {
+          collected.push({ lat: coords.lat, lng: coords.lng, tripId: trip.id, tripName: trip.name || trip.destination, status: trip.status, emoji: trip.emoji || "✈️", label: trip.destination, destination: trip.destination, type: "destination" });
+        }
+        pending--;
+        if (pending === 0) { setPins([...collected]); setLoading(false); }
+      });
+    });
+  }, [trips]);
+
+  // Initialize Leaflet map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, { zoomControl: true, scrollWheelZoom: true }).setView([20, 78], 4);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      attribution: "© OpenStreetMap © Carto",
+      subdomains: "abcd",
+      maxZoom: 20
+    }).addTo(map);
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Update markers when pins or map ready
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    pins.forEach(pin => {
+      const icon = L.divIcon({
+        html: `<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">${pin.emoji}</div>`,
+        className: "", iconSize: [30, 30], iconAnchor: [15, 15],
+      });
+      const marker = L.marker([pin.lat, pin.lng], { icon }).addTo(map);
+      marker.bindPopup(`
+        <div style="font-family:sans-serif;min-width:160px">
+          <div style="font-size:16px;font-weight:800;margin-bottom:4px">${pin.emoji} ${pin.tripName}</div>
+          <div style="font-size:12px;color:#666;margin-bottom:6px">📍 ${pin.label}</div>
+          <div style="display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;background:${pin.status === "completed" ? "#D1FAE5" : pin.status === "ongoing" ? "#DBEAFE" : "#FEF3C7"};color:#0F172A">${pin.status || "planning"}</div>
+        </div>
+      `);
+      markersRef.current.push(marker);
+    });
+
+    if (pins.length > 0) {
+      try {
+        map.fitBounds(L.latLngBounds(pins.map(p => [p.lat, p.lng])).pad(0.2));
+      } catch {}
+    }
+  }, [pins]);
+
+  const visitedCountries = [...new Set(trips.map(t => t.country).filter(Boolean))];
 
   return (
-    <div style={{ minHeight:'100vh', background:'#0F172A', paddingBottom:80 }}>
-
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#0F172A" }}>
       {/* Header */}
-      <div style={{ padding:'52px 20px 20px' }}>
-        <button onClick={()=>navigate(-1)}
-          style={{ background:'rgba(255,255,255,0.1)', border:'none', borderRadius:12, padding:'8px 14px', color:'white', fontFamily:'Outfit', fontWeight:700, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:6, marginBottom:20 }}>
-          <ArrowLeft size={15}/> Back
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#0F172A", flexShrink: 0, zIndex: 10 }}>
+        <button onClick={() => navigate(-1)} style={{ background: "rgba(255,255,255,.1)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
+          <ArrowLeft size={18} />
         </button>
-        <div style={{ fontSize:24, fontWeight:900, color:'white', marginBottom:4 }}>🗺️ Scratch Map</div>
-        <div style={{ fontSize:13, color:'rgba(255,255,255,0.5)' }}>
-          Scratch off places you've explored
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "#fff", fontWeight: 900, fontSize: 16 }}>🌍 Travel Map</div>
+          <div style={{ color: "rgba(255,255,255,.6)", fontSize: 11 }}>{trips.length} trip{trips.length !== 1 ? "s" : ""} · {visitedCountries.length} countr{visitedCountries.length !== 1 ? "ies" : "y"}</div>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => setActiveView("map")} style={{ padding: "6px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: activeView === "map" ? "var(--em,#10B981)" : "rgba(255,255,255,.1)", color: "#fff" }}>Map</button>
+          <button onClick={() => setActiveView("list")} style={{ padding: "6px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: activeView === "list" ? "var(--em,#10B981)" : "rgba(255,255,255,.1)", color: "#fff" }}>Countries</button>
         </div>
       </div>
 
-      {/* Progress bars */}
-      <div style={{ padding:'0 20px 20px', display:'flex', flexDirection:'column', gap:10 }}>
-        {[
-          { label:`🌍 World — ${visitedCountries.size}/${WORLD_COUNTRIES.length} countries`, pct:pctWorld, color:'#10B981' },
-          { label:`🇮🇳 India — ${visitedStates.size}/29 states`, pct:pctIndia, color:'#F59E0B' },
-        ].map(b=>(
-          <div key={b.label}>
-            <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.7)', marginBottom:6 }}>
-              <span>{b.label}</span><span>{b.pct}%</span>
+      {/* Leaflet map */}
+      {activeView === "map" && (
+        <div style={{ flex: 1, position: "relative" }}>
+          <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
+          {loading && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,.7)", color: "#fff", fontSize: 14, fontWeight: 700, zIndex: 1000 }}>
+              📍 Loading your travel pins…
             </div>
-            <div style={{ height:8, borderRadius:999, background:'rgba(255,255,255,0.1)' }}>
-              <div style={{ height:'100%', width:`${b.pct}%`, borderRadius:999, background:b.color, transition:'width 1s ease' }}/>
+          )}
+          {!loading && pins.length === 0 && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,.7)", color: "#fff", textAlign: "center", padding: 24, zIndex: 1000 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🗺️</div>
+              <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 8 }}>No map pins yet</div>
+              <div style={{ fontSize: 13, opacity: .7 }}>Add destinations to your trips and they will appear here automatically.</div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* View Toggle */}
-      <div style={{ display:'flex', gap:8, padding:'0 20px 16px' }}>
-        {[['world','🌍 World'],['india','🇮🇳 India']].map(([id,label])=>(
-          <button key={id} onClick={()=>{ setActiveView(id); setSearch(''); }}
-            style={{ flex:1, padding:'10px', borderRadius:12, border:`2px solid ${activeView===id?'#10B981':'rgba(255,255,255,0.15)'}`, background:activeView===id?'#10B981':'rgba(255,255,255,0.08)', color:'white', fontFamily:'Outfit', fontWeight:700, fontSize:13, cursor:'pointer', transition:'all 180ms' }}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <div style={{ padding:'0 20px 16px' }}>
-        <input
-          value={search} onChange={e=>setSearch(e.target.value)}
-          placeholder={activeView==='world'?'Search countries…':'Search states…'}
-          style={{ width:'100%', padding:'12px 16px', borderRadius:12, border:'1px solid rgba(255,255,255,0.15)', background:'rgba(255,255,255,0.08)', color:'white', fontFamily:'Outfit', fontSize:14, outline:'none' }}/>
-      </div>
-
-      {/* Legend */}
-      <div style={{ display:'flex', gap:16, padding:'0 20px 16px', flexWrap:'wrap' }}>
-        {[['#10B981','Visited'],['#0EA5E9','Planned'],['rgba(255,255,255,0.08)','Not Yet']].map(([color,label])=>(
-          <div key={label} style={{ display:'flex', alignItems:'center', gap:6 }}>
-            <div style={{ width:12, height:12, borderRadius:3, background:color, border:'1px solid rgba(255,255,255,0.2)' }}/>
-            <span style={{ fontSize:12, color:'rgba(255,255,255,0.6)', fontWeight:600 }}>{label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* World View */}
-      {activeView==='world'&&(
-        <div style={{ padding:'0 16px' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
-            {filteredCountries.map(c=>{
-              const isVisited = visitedCountries.has(c.name);
-              const isPlanned = plannedCountries.has(c.name)&&!isVisited;
-              return (
-                <div key={c.name}
-                  style={{ background:isVisited?'rgba(16,185,129,0.2)':isPlanned?'rgba(14,165,233,0.2)':'rgba(255,255,255,0.05)', borderRadius:14, padding:'14px 10px', textAlign:'center', border:`1.5px solid ${isVisited?'rgba(16,185,129,0.5)':isPlanned?'rgba(14,165,233,0.4)':'rgba(255,255,255,0.08)'}` }}>
-                  <div style={{ fontSize:26 }}>{c.emoji}</div>
-                  <div style={{ fontSize:10, fontWeight:700, color:isVisited?'#6EE7B7':isPlanned?'#7DD3FC':'rgba(255,255,255,0.4)', marginTop:4, lineHeight:1.3 }}>{c.name}</div>
-                  <div style={{ fontSize:8, fontWeight:700, marginTop:4, textTransform:'uppercase', letterSpacing:'0.05em', color:isVisited?'#10B981':isPlanned?'#0EA5E9':'rgba(255,255,255,0.2)' }}>
-                    {isVisited?'✓ Visited':isPlanned?'Planned':'—'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          )}
         </div>
       )}
 
-      {/* India States View */}
-      {activeView==='india'&&(
-        <div style={{ padding:'0 16px' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
-            {filteredStates.map(s=>{
-              const isVisited = visitedStates.has(s);
-              const isPlanned = plannedStates.has(s)&&!isVisited;
-              return (
-                <div key={s}
-                  style={{ background:isVisited?'rgba(16,185,129,0.2)':isPlanned?'rgba(14,165,233,0.2)':'rgba(255,255,255,0.05)', borderRadius:14, padding:'14px 10px', textAlign:'center', border:`1.5px solid ${isVisited?'rgba(16,185,129,0.5)':isPlanned?'rgba(14,165,233,0.4)':'rgba(255,255,255,0.08)'}` }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:isVisited?'#6EE7B7':isPlanned?'#7DD3FC':'rgba(255,255,255,0.5)', lineHeight:1.4 }}>{s}</div>
-                  <div style={{ fontSize:8, fontWeight:700, marginTop:6, textTransform:'uppercase', letterSpacing:'0.05em', color:isVisited?'#10B981':isPlanned?'#0EA5E9':'rgba(255,255,255,0.2)' }}>
-                    {isVisited?'✓ Visited':isPlanned?'Planned':'—'}
+      {/* Countries list view */}
+      {activeView === "list" && (
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 80px" }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 14, marginBottom: 14, opacity: .7 }}>Countries You&apos;ve Visited or Plan to Visit</div>
+          {trips.length === 0 ? (
+            <div style={{ textAlign: "center", color: "rgba(255,255,255,.5)", padding: "40px 0", fontSize: 14 }}>No trips yet. Start planning!</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[...new Map(trips.filter(t => t.country || t.destination).map(t => [t.country || t.destination, t])).values()].map(t => {
+                const cEntry = WORLD_COUNTRIES.find(c => c.name.toLowerCase() === (t.country || "").toLowerCase());
+                const emoji = cEntry?.emoji || t.emoji || "🌍";
+                const tripCount = trips.filter(x => x.country === t.country && t.country).length;
+                const colors = { completed: "#D1FAE5", ongoing: "#DBEAFE", planning: "#FEF9C3", upcoming: "#FEF3C7" };
+                return (
+                  <div key={t.id} style={{ background: "rgba(255,255,255,.07)", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{ fontSize: 28, flexShrink: 0 }}>{emoji}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{t.country || t.destination}</div>
+                      <div style={{ color: "rgba(255,255,255,.5)", fontSize: 11, marginTop: 2 }}>{tripCount > 1 ? `${tripCount} trips` : t.destination}</div>
+                    </div>
+                    <div style={{ padding: "4px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: colors[t.status] || "#FEF9C3", color: "#0F172A" }}>{t.status}</div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
-
-      {/* Stats Footer */}
-      <div style={{ margin:'20px 16px 0', background:'rgba(255,255,255,0.06)', borderRadius:18, padding:'20px', border:'1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Global Stats</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:14 }}>
-          {[
-            { val:visitedCountries.size, label:'Countries Visited', color:'#10B981' },
-            { val:plannedCountries.size, label:'Countries Planned', color:'#0EA5E9' },
-            { val:visitedStates.size,    label:'Indian States Visited', color:'#F59E0B' },
-            { val:plannedStates.size,    label:'Indian States Planned', color:'#8B5CF6' },
-          ].map(s=>(
-            <div key={s.label} style={{ background:'rgba(255,255,255,0.05)', borderRadius:12, padding:'14px', textAlign:'center' }}>
-              <div style={{ fontSize:26, fontWeight:900, color:s.color }}>{s.val}</div>
-              <div style={{ fontSize:10, color:'rgba(255,255,255,0.4)', fontWeight:600, marginTop:4, lineHeight:1.3 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

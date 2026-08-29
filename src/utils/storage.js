@@ -10,6 +10,8 @@ const KEYS = {
   JOURNAL: 'rwp_journal',
   STREAK: 'rwp_streak',
   CHALLENGES: 'rwp_challenges',
+  TRANSACTIONS: 'rwp_transactions',
+  GEO_CACHE: 'rwp_geo_cache',
 };
 
 function read(key, fallback) {
@@ -146,16 +148,40 @@ export function deleteExpense(tripId, expId) {
 }
 
 // ─── Highlights ───────────────────────────────────────────────────────────────
-export function addHighlight(tripId, url) {
+// Highlight schema: { id, title, caption, photos: [{id, url}], createdAt }
+// Backwards compat: old highlights had { id, url } — normalizeHighlight handles both
+export function normalizeHighlight(h) {
+  if (h.photos && Array.isArray(h.photos)) return h;
+  // old format: { id, url }
+  return { ...h, photos: h.url ? [{ id: h.id + '_p0', url: h.url }] : [] };
+}
+
+export function addHighlight(tripId, highlightData) {
   const trip = getTrip(tripId);
   if (!trip) return null;
-  return updateTrip(tripId, { highlights: [...(trip.highlights || []), { id: uuid(), url }] });
+  const highlight = {
+    id: uuid(),
+    title: '',
+    caption: '',
+    photos: [],
+    createdAt: new Date().toISOString(),
+    // allow legacy single-url usage
+    ...(typeof highlightData === 'string' ? { photos: [{ id: uuid(), url: highlightData }] } : highlightData),
+  };
+  return updateTrip(tripId, { highlights: [...(trip.highlights || []), highlight] });
+}
+
+export function updateHighlight(tripId, hId, updates) {
+  const trip = getTrip(tripId);
+  if (!trip) return null;
+  const highlights = (trip.highlights || []).map(h => h.id === hId ? { ...normalizeHighlight(h), ...updates } : h);
+  return updateTrip(tripId, { highlights });
 }
 
 export function deleteHighlight(tripId, hId) {
   const trip = getTrip(tripId);
   if (!trip) return null;
-  return updateTrip(tripId, { highlights: trip.highlights.filter(h => h.id !== hId) });
+  return updateTrip(tripId, { highlights: (trip.highlights || []).filter(h => h.id !== hId) });
 }
 
 // ─── Notes ───────────────────────────────────────────────────────────────────
@@ -174,9 +200,53 @@ export function deleteNote(tripId, noteId) {
 
 // ─── Profile ─────────────────────────────────────────────────────────────────
 export function getProfile() {
-  return read(KEYS.PROFILE, { name: 'Pranit', avatar: '', bio: '' });
+  return read(KEYS.PROFILE, { name: 'Pranit', avatar: '', bio: '', homeCountry: '', homeCity: '' });
 }
-export function saveProfile(profile) { write(KEYS.PROFILE, profile); }
+export function saveProfile(profile) {
+  const merged = { ...getProfile(), ...profile };
+  write(KEYS.PROFILE, merged);
+  return merged;
+}
+
+// ─── Global Transactions ──────────────────────────────────────────────────────
+// Transaction: { id, tripId, tripName, activityId, label, amount, category, date, source }
+export function getTransactions() { return read(KEYS.TRANSACTIONS, []); }
+
+export function upsertTransaction(tx) {
+  const all = getTransactions();
+  const idx = all.findIndex(t =>
+    t.activityId ? t.activityId === tx.activityId : t.id === tx.id
+  );
+  let updated;
+  if (idx >= 0) {
+    updated = all.map((t, i) => i === idx ? { ...t, ...tx } : t);
+  } else {
+    updated = [...all, { id: uuid(), createdAt: new Date().toISOString(), ...tx }];
+  }
+  write(KEYS.TRANSACTIONS, updated);
+  return updated;
+}
+
+export function deleteTransaction(txId) {
+  write(KEYS.TRANSACTIONS, getTransactions().filter(t => t.id !== txId));
+}
+
+export function deleteTransactionByActivityId(activityId) {
+  write(KEYS.TRANSACTIONS, getTransactions().filter(t => t.activityId !== activityId));
+}
+
+export function getTransactionsByTrip(tripId) {
+  return getTransactions().filter(t => t.tripId === tripId);
+}
+
+// ─── Geocoding Cache ──────────────────────────────────────────────────────────
+export function getGeoCache() { return read(KEYS.GEO_CACHE, {}); }
+export function setGeoCache(key, coords) {
+  const cache = getGeoCache();
+  cache[key] = coords;
+  write(KEYS.GEO_CACHE, cache);
+}
+
 
 // ─── Journal ─────────────────────────────────────────────────────────────────
 // Journal entries stored as { [tripId_dayId]: { text, prompt, updatedAt } }
