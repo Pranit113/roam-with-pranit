@@ -225,6 +225,32 @@ export default function Home() {
         <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 4 }}>
           {trips.length === 0 ? 'Ready for your first adventure?' : `${trips.length} trip${trips.length > 1 ? 's' : ''} · ${done.length} completed`}
         </div>
+
+        {/* Quick Stats Pills */}
+        {trips.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 16 }}>
+            <div style={{ background: '#F8FAFC', borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid #F1F5F9' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--em, #10B981)' }}>{trips.length}</div>
+              <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', marginTop: 2 }}>Trips</div>
+            </div>
+            <div style={{ background: '#F8FAFC', borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid #F1F5F9' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--sky, #0EA5E9)' }}>{[...new Set(trips.map(t => t.country).filter(Boolean))].length}</div>
+              <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', marginTop: 2 }}>Countries</div>
+            </div>
+            <div style={{ background: '#F8FAFC', borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid #F1F5F9' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#8B5CF6' }}>
+                {trips.reduce((s, t) => s + (t.highlights || []).reduce((hs, h) => hs + (h.photos?.length || (h.url ? 1 : 0)), 0), 0)}
+              </div>
+              <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', marginTop: 2 }}>Photos</div>
+            </div>
+            <div style={{ background: '#F8FAFC', borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid #F1F5F9' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#F59E0B' }}>
+                ₹{Math.round(trips.reduce((s, t) => s + (t.expenses || []).reduce((es, e) => es + Number(e.amount || 0), 0), 0) / 1000)}k
+              </div>
+              <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', marginTop: 2 }}>Spent</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── EMPTY STATE ── */}
