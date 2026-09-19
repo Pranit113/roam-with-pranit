@@ -95,18 +95,45 @@ function HighlightRing({ trip, onOpen }) {
 
   return (
     <div onClick={() => onOpen(trip)} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", flexShrink: 0 }}>
-      <div style={{ width: 68, height: 68, borderRadius: "50%", padding: 2.5, background: "linear-gradient(135deg,#10B981,#06B6D4)", marginBottom: 6 }}>
+      <div style={{ width: 64, height: 64, borderRadius: "50%", padding: 2.5, background: "linear-gradient(135deg,#10B981,#06B6D4)", marginBottom: 5 }}>
         <div style={{ width: "100%", height: "100%", borderRadius: "50%", border: "2.5px solid white", overflow: "hidden", background: "#F3F4F6" }}>
           {firstPhoto
             ? <img src={firstPhoto} alt={trip.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{trip.emoji || "✈️"}</div>
+            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{trip.emoji || "✈️"}</div>
           }
         </div>
       </div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#374151", textAlign: "center", maxWidth: 68, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#374151", textAlign: "center", maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {trip.name}
       </div>
     </div>
+  );
+}
+
+/* Small compact trip card — same style for all trips, no hero card */
+function TripCard({ trip, onClick }) {
+  return (
+    <motion.div onClick={onClick} whileTap={{ scale: 0.97 }}
+      style={{ display: "flex", gap: 12, padding: "12px 14px", background: "#fff", border: "1px solid #F3F4F6", borderRadius: 16, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", alignItems: "center" }}>
+      {/* Square thumbnail */}
+      <div style={{ width: 60, height: 60, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>
+        {trip.cover
+          ? <img src={trip.cover} alt={trip.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          : (trip.emoji || "✈️")
+        }
+      </div>
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{trip.emoji} {trip.name}</div>
+        {trip.destination && <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>📍 {trip.destination}</div>}
+        <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: statusColor(trip.status), display: "inline-block", flexShrink: 0 }} />
+          <span style={{ textTransform: "capitalize" }}>{trip.status || "Planning"}</span>
+          {trip.startDate && <span> · {fmtDate(trip.startDate)}</span>}
+        </div>
+      </div>
+      <ChevronRight size={17} color="#D1D5DB" style={{ flexShrink: 0 }} />
+    </motion.div>
   );
 }
 
@@ -147,7 +174,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Greeting */}
       <div style={{ padding: "6px 20px 0", fontSize: 14, color: "#9CA3AF", fontWeight: 500 }}>
         {greeting()}, {profile.name || "Pranit"} ✈️
       </div>
@@ -164,21 +190,21 @@ export default function Home() {
 
       {/* Highlights */}
       {!search && tripsWithHighlights.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 20px", marginBottom: 12 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: "#111827" }}>Highlights</div>
+        <div style={{ marginTop: 22 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 20px", marginBottom: 10 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>Highlights</div>
             <button onClick={() => navigate("/highlights")} style={{ fontSize: 13, color: "#9CA3AF", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>View all</button>
           </div>
-          <div style={{ display: "flex", gap: 14, overflowX: "auto", padding: "4px 20px 8px", scrollbarWidth: "none" }}>
+          <div style={{ display: "flex", gap: 14, overflowX: "auto", padding: "4px 20px 4px", scrollbarWidth: "none" }}>
             {tripsWithHighlights.map(t => <HighlightRing key={t.id} trip={t} onOpen={setStory} />)}
           </div>
         </div>
       )}
 
       {/* Trips */}
-      <div style={{ padding: "24px 20px 0" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: "#111827" }}>
+      <div style={{ padding: "20px 20px 0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>
             {search ? `Results for "${search}"` : "My Trips"}
           </div>
           {!search && trips.length > 0 && (
@@ -187,81 +213,41 @@ export default function Home() {
         </div>
 
         {filteredTrips.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>✈️</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "#111827", marginBottom: 8 }}>
+          <div style={{ textAlign: "center", padding: "50px 0" }}>
+            <div style={{ fontSize: 48, marginBottom: 14 }}>✈️</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: "#111827", marginBottom: 8 }}>
               {search ? "No trips found" : "No journeys yet"}
             </div>
-            <div style={{ fontSize: 14, color: "#9CA3AF", marginBottom: 24 }}>
-              {search ? "Try a different search term" : "Start planning your first adventure"}
+            <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 20 }}>
+              {search ? "Try a different search" : "Start planning your first adventure"}
             </div>
             {!search && (
               <motion.button onClick={() => navigate("/trips")} whileTap={{ scale: 0.97 }}
-                style={{ background: "#111827", color: "#fff", border: "none", borderRadius: 99, padding: "14px 28px", fontSize: 15, fontWeight: 800, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <Plus size={18} /> Plan a Trip
+                style={{ background: "#111827", color: "#fff", border: "none", borderRadius: 99, padding: "12px 24px", fontSize: 14, fontWeight: 800, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Plus size={16} /> Plan a Trip
               </motion.button>
             )}
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {filteredTrips.map((trip, i) => {
-              const isHero = i === 0 && trip.cover;
-              if (isHero) {
-                return (
-                  <motion.div key={trip.id} onClick={() => navigate(`/trip/${trip.id}`)} whileTap={{ scale: 0.98 }}
-                    style={{ borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)", cursor: "pointer" }}>
-                    <div style={{ height: 220, overflow: "hidden", position: "relative" }}>
-                      <img src={trip.cover} alt={trip.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      <div style={{ position: "absolute", top: 12, right: 12, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", borderRadius: 99, padding: "4px 12px", fontSize: 11, fontWeight: 800, color: "#111827", display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: statusColor(trip.status), display: "inline-block" }} />
-                        {trip.status ? trip.status[0].toUpperCase() + trip.status.slice(1) : "Planning"}
-                      </div>
-                    </div>
-                    <div style={{ padding: "14px 16px 16px", background: "#fff" }}>
-                      <div style={{ fontSize: 17, fontWeight: 800, color: "#111827", marginBottom: 4 }}>{trip.emoji} {trip.name}</div>
-                      {trip.destination && <div style={{ fontSize: 13, color: "#6B7280", display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}><MapPin size={12} color="#10B981" strokeWidth={2.5} /> {trip.destination}</div>}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ fontSize: 12, color: "#9CA3AF" }}>{fmtDate(trip.startDate)}{trip.endDate ? ` – ${fmtDate(trip.endDate)}` : ""}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#10B981" }}>Open →</div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              }
-              return (
-                <motion.div key={trip.id} onClick={() => navigate(`/trip/${trip.id}`)} whileTap={{ scale: 0.98 }}
-                  style={{ display: "flex", gap: 12, padding: "12px", background: "#fff", border: "1px solid #F3F4F6", borderRadius: 16, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                  <div style={{ width: 72, height: 72, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30 }}>
-                    {trip.cover ? <img src={trip.cover} alt={trip.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (trip.emoji || "✈️")}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#111827" }}>{trip.emoji} {trip.name}</div>
-                    {trip.destination && <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>📍 {trip.destination}</div>}
-                    <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: statusColor(trip.status), display: "inline-block" }} />
-                      <span style={{ textTransform: "capitalize" }}>{trip.status || "Planning"}</span>
-                      {trip.startDate && <span> · {fmtDate(trip.startDate)}</span>}
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#D1D5DB" style={{ alignSelf: "center", flexShrink: 0 }} />
-                </motion.div>
-              );
-            })}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {filteredTrips.map(trip => (
+              <TripCard key={trip.id} trip={trip} onClick={() => navigate(`/trip/${trip.id}`)} />
+            ))}
           </div>
         )}
       </div>
 
       {/* Places shortcut */}
       {!search && (
-        <div style={{ padding: "24px 20px 0" }}>
+        <div style={{ padding: "20px 20px 0" }}>
           <motion.div onClick={() => navigate("/places")} whileTap={{ scale: 0.98 }}
-            style={{ background: "#F0FDF4", borderRadius: 16, padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, border: "1px solid #D1FAE5" }}>
-            <div style={{ fontSize: 28 }}>🗺️</div>
+            style={{ background: "#F0FDF4", borderRadius: 14, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, border: "1px solid #D1FAE5" }}>
+            <div style={{ fontSize: 24 }}>🗺️</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>My Places</div>
-              <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>Hotels, restaurants, activities & more</div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#111827" }}>My Places</div>
+              <div style={{ fontSize: 12, color: "#6B7280", marginTop: 1 }}>Hotels, restaurants, activities & more</div>
             </div>
-            <ChevronRight size={18} color="#10B981" />
+            <ChevronRight size={16} color="#10B981" />
           </motion.div>
         </div>
       )}

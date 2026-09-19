@@ -1,326 +1,275 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import {
-  ArrowLeft, Navigation, Plus, FileText, Download, Trash2, Camera, X
-} from 'lucide-react';
-import { getTrip, addHighlight, deleteHighlight, normalizeHighlight, uuid } from '../utils/storage';
-import {
-  getPolarSteps, addPolarStep, deletePolarStep,
-} from '../utils/polarstepsStorage';
-import PolarstepsRouteMap from '../components/PolarstepsRouteMap';
-import PolarstepsItinerary from '../components/PolarstepsItinerary';
-import PolarstepsStats     from '../components/PolarstepsStats';
-import PolarstepsExpenses  from '../components/PolarstepsExpenses';
-import PolarstepsBadges    from '../components/PolarstepsBadges';
-import PolarstepsChecklist from '../components/PolarstepsChecklist';
-import WeatherWidget       from '../components/WeatherWidget';
-import AddStepModal        from '../components/AddStepModal';
-import MustTryGuide        from '../components/MustTryGuide';
-import HighlightGallery    from '../components/HighlightGallery';
-import { exportPolarstepsPDF } from '../utils/polarstepsPdf';
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowLeft, Plus, FileText, Download, Trash2, Camera, X, MapPin, Navigation } from "lucide-react";
+import { getTrip, addHighlight, deleteHighlight, normalizeHighlight, uuid } from "../utils/storage";
+import { getPolarSteps, addPolarStep, deletePolarStep } from "../utils/polarstepsStorage";
+import PolarstepsItinerary from "../components/PolarstepsItinerary";
+import PolarstepsStats     from "../components/PolarstepsStats";
+import PolarstepsExpenses  from "../components/PolarstepsExpenses";
+import PolarstepsBadges    from "../components/PolarstepsBadges";
+import PolarstepsChecklist from "../components/PolarstepsChecklist";
+import HighlightGallery    from "../components/HighlightGallery";
+import { exportPolarstepsPDF } from "../utils/polarstepsPdf";
 
-const WORKSPACE_TABS = [
-  { id: 'route',      label: '📍 Route & Journal',        icon: '📍' },
-  { id: 'highlights', label: '📸 Highlights',              icon: '📸' },
-  { id: 'itinerary',  label: '📅 Day Itinerary',           icon: '📅' },
-  { id: 'musttry',    label: '🌟 Must-Try & Photo Spots',  icon: '🌟' },
-  { id: 'stats',      label: '📊 Trip Stats',              icon: '📊' },
-  { id: 'expenses',   label: '🧮 Expenses (Splitwise)',    icon: '🧮' },
-  { id: 'badges',     label: '🏆 Stamps & Badges',         icon: '🏆' },
-  { id: 'checklist',  label: '🎒 Packing List',            icon: '🎒' },
+const TABS = [
+  { id: "journal",   label: "📍 Journal"    },
+  { id: "highlights",label: "📸 Highlights" },
+  { id: "itinerary", label: "📅 Itinerary"  },
+  { id: "expenses",  label: "💰 Expenses"   },
+  { id: "stats",     label: "📊 Stats"      },
+  { id: "badges",    label: "🏆 Badges"     },
+  { id: "checklist", label: "🎒 Packing"    },
 ];
 
-export default function TripWorkspace() {
-  const { id }     = useParams();
-  const navigate   = useNavigate();
-  const [trip,     setTrip]     = useState(null);
-  const [steps,    setSteps]    = useState([]);
-  const [activeTab, setActiveTab] = useState('route');
-  const [activeStepId, setActiveStepId] = useState(null);
-  const [addStepOpen, setAddStepOpen]   = useState(false);
-  const [pickedCoords, setPickedCoords] = useState(null);
+/* Inline Add-Step form */
+function AddStepInline({ onSave, onCancel }) {
+  const [name, setName] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [time, setTime] = useState(new Date().toTimeString().slice(0,5));
+  const [notes, setNotes] = useState("");
+  const [photos, setPhotos] = useState([]);
+  const [transport, setTransport] = useState("car");
+  const fileRef = useRef();
 
-  // Highlights state
-  const [galleryOpen,    setGalleryOpen]    = useState(false);
-  const [galleryIdx,     setGalleryIdx]     = useState(0);
-  const [hlTitle,        setHlTitle]        = useState('');
-  const [hlCaption,      setHlCaption]      = useState('');
-  const [hlPreviews,     setHlPreviews]     = useState([]); // [{id,url}]
-  const [hlUploading,    setHlUploading]    = useState(false);
+  function handleFiles(e) {
+    const files = Array.from(e.target.files || []);
+    files.forEach(f => {
+      const r = new FileReader();
+      r.onload = ev => setPhotos(p => [...p, { id: uuid(), url: ev.target.result }]);
+      r.readAsDataURL(f);
+    });
+    e.target.value = "";
+  }
+
+  function save() {
+    if (!name.trim()) return;
+    onSave({ id: uuid(), stepNo: Date.now(), name: name.trim(), date, time, notes, transport, photos, distKm: 0 });
+  }
+
+  const inp = { width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit", background: "#fff" };
+
+  return (
+    <div style={{ background: "#F9FAFB", borderRadius: 14, padding: "14px", border: "1.5px solid #E5E7EB", marginBottom: 12 }}>
+      <div style={{ fontWeight: 800, fontSize: 14, color: "#111827", marginBottom: 10 }}>📍 Add Travel Stop</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Place name (e.g. Old Manali)" style={inp} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ ...inp, flex: 1 }} />
+          <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ ...inp, flex: 1 }} />
+        </div>
+        <select value={transport} onChange={e => setTransport(e.target.value)} style={{ ...inp }}>
+          <option value="car">🚗 Car</option>
+          <option value="flight">✈️ Flight</option>
+          <option value="train">🚆 Train</option>
+          <option value="bus">🚌 Bus</option>
+          <option value="hike">🥾 Hike</option>
+          <option value="boat">⛵ Boat</option>
+        </select>
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes / memories..." rows={2}
+          style={{ ...inp, resize: "none" }} />
+
+        {/* Photo upload */}
+        <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handleFiles} />
+        <button onClick={() => fileRef.current?.click()}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "1.5px dashed #D1D5DB", borderRadius: 10, padding: "9px 14px", fontSize: 13, color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>
+          <Camera size={15} /> Add Photos
+        </button>
+        {photos.length > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {photos.map(p => (
+              <div key={p.id} style={{ position: "relative" }}>
+                <img src={p.url} alt="" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8 }} />
+                <button onClick={() => setPhotos(arr => arr.filter(x => x.id !== p.id))}
+                  style={{ position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <X size={10} color="white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+          <button onClick={onCancel}
+            style={{ flex: 1, padding: "10px", background: "#F3F4F6", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", color: "#6B7280" }}>
+            Cancel
+          </button>
+          <button onClick={save} disabled={!name.trim()}
+            style={{ flex: 2, padding: "10px", background: name.trim() ? "#10B981" : "#E5E7EB", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: name.trim() ? "pointer" : "not-allowed", color: name.trim() ? "#fff" : "#9CA3AF" }}>
+            Save Stop
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function TripWorkspace() {
+  const { id }   = useParams();
+  const navigate = useNavigate();
+  const [trip, setTrip]       = useState(null);
+  const [steps, setSteps]     = useState([]);
+  const [activeTab, setActiveTab] = useState("journal");
+  const [addStepOpen, setAddStepOpen] = useState(false);
+
+  // Highlights
+  const [galleryOpen, setGalleryOpen]   = useState(false);
+  const [galleryIdx,  setGalleryIdx]    = useState(0);
+  const [hlTitle,     setHlTitle]       = useState("");
+  const [hlCaption,   setHlCaption]     = useState("");
+  const [hlPreviews,  setHlPreviews]    = useState([]);
+  const [hlUploading, setHlUploading]   = useState(false);
   const hlFileRef = useRef();
 
   function reload() {
-    const t = getTrip(id) || { id, title: 'My Polarsteps Journey', destination: 'Exploration' };
+    const t = getTrip(id) || { id, name: "My Journey", destination: "" };
     setTrip(t);
-    const s = getPolarSteps(id);
-    setSteps(s);
+    setSteps(getPolarSteps(id));
   }
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { reload(); }, [id]);
 
-  function handleSaveStep(stepData) {
-    addPolarStep(id, stepData);
-    reload();
-  }
+  function handleSaveStep(s) { addPolarStep(id, s); reload(); setAddStepOpen(false); }
+  function handleDeleteStep(sid) { if (!confirm("Delete this stop?")) return; deletePolarStep(id, sid); reload(); }
 
-  function handleDeleteStep(stepId) {
-    if (!confirm('Delete this travel step?')) return;
-    deletePolarStep(id, stepId);
-    reload();
-  }
-
-  function handleMapClick(coords) {
-    setPickedCoords(coords);
-    setAddStepOpen(true);
-  }
-
-  function handleConvertItinToStep(itinData) {
-    addPolarStep(id, itinData);
-    reload();
-    setActiveTab('route');
-  }
-
-  // ── Highlights handlers ────────────────────────────────────────
+  // Highlights handlers
   function handleHlFiles(e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setHlUploading(true);
     let done = 0;
     const loaded = [];
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = ev => {
+    files.forEach(f => {
+      const r = new FileReader();
+      r.onload = ev => {
         loaded.push({ id: uuid(), url: ev.target.result });
         done++;
-        if (done === files.length) {
-          setHlPreviews(p => [...p, ...loaded]);
-          setHlUploading(false);
-        }
+        if (done === files.length) { setHlPreviews(p => [...p, ...loaded]); setHlUploading(false); }
       };
-      reader.readAsDataURL(file);
+      r.readAsDataURL(f);
     });
-    e.target.value = '';
+    e.target.value = "";
   }
-
   function removeHlPreview(pid) { setHlPreviews(p => p.filter(x => x.id !== pid)); }
-
   function saveHighlight() {
     if (!hlPreviews.length) return;
     addHighlight(id, { title: hlTitle, caption: hlCaption, photos: hlPreviews });
-    setHlPreviews([]); setHlTitle(''); setHlCaption('');
+    setHlPreviews([]); setHlTitle(""); setHlCaption("");
     reload();
   }
-
-  function handleDeleteHighlight(hId) {
-    deleteHighlight(id, hId);
-    setGalleryOpen(false);
-    reload();
-  }
+  function handleDeleteHighlight(hId) { deleteHighlight(id, hId); setGalleryOpen(false); reload(); }
 
   if (!trip) return null;
 
-  const totalKm = steps.reduce((sum, s) => sum + (s.distKm || 0), 0);
-  const currentLoc = steps[steps.length - 1] || steps[0];
   const highlights = (trip.highlights || []).map(normalizeHighlight);
+  const inp = { width: "100%", padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: 12, fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 8 };
 
   return (
     <div className="ps-workspace-root">
-      {/* Add Step Modal */}
-      <AddStepModal
-        open={addStepOpen}
-        onClose={() => setAddStepOpen(false)}
-        onSave={handleSaveStep}
-        initialCoords={pickedCoords}
-      />
-
-      {/* Top Header Bar */}
+      {/* Header */}
       <header className="ps-header">
         <div className="ps-header-left">
-          <button className="ps-icon-btn" onClick={() => navigate('/trips')}>
-            <ArrowLeft size={18} />
-          </button>
+          <button className="ps-icon-btn" onClick={() => navigate("/trips")}><ArrowLeft size={18} /></button>
           <div>
-            <div className="ps-trip-title">{trip.name || trip.destination || 'My Journey'}</div>
+            <div className="ps-trip-title">{trip.name || trip.destination || "My Journey"}</div>
             <div className="ps-trip-sub">
-              <span>{trip.destination || 'Polarsteps Traveler'}</span>
+              <span>{trip.destination || "Traveler"}</span>
               <span>·</span>
-              <span className="ps-badge-km">+{totalKm.toLocaleString()} km</span>
+              <span className="ps-badge-km">{steps.length} stop{steps.length !== 1 ? "s" : ""}</span>
             </div>
           </div>
         </div>
-
         <div className="ps-header-right">
-          <motion.button
-            className="ps-btn-pdf"
-            onClick={() => exportPolarstepsPDF(trip, steps)}
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-          >
-            <FileText size={15} /> Export Book <Download size={13} />
-          </motion.button>
-          <motion.button
-            className="ps-btn-primary"
-            onClick={() => { setPickedCoords(null); setAddStepOpen(true); }}
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-          >
-            <Plus size={16} /> Record Step
+          <motion.button className="ps-btn-pdf" onClick={() => exportPolarstepsPDF(trip, steps)} whileTap={{ scale: 0.97 }}>
+            <FileText size={15} /> Export <Download size={13} />
           </motion.button>
         </div>
       </header>
 
-      {/* Main Tab Navigation Bar */}
+      {/* Tab Bar */}
       <nav className="ps-workspace-tabs">
-        {WORKSPACE_TABS.map(t => (
-          <button
-            key={t.id}
-            className={`ps-workspace-tab ${activeTab === t.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(t.id)}
-          >
+        {TABS.map(t => (
+          <button key={t.id} className={`ps-workspace-tab ${activeTab === t.id ? "active" : ""}`} onClick={() => setActiveTab(t.id)}>
             {t.label}
           </button>
         ))}
       </nav>
 
-      {/* Main Content Area */}
       <main className="ps-workspace-main">
-        {/* Tab 1: Route & Journal */}
-        {activeTab === 'route' && (
-          <div className="ps-route-layout">
-            <div className="ps-route-map-wrapper">
-              <PolarstepsRouteMap
-                steps={steps}
-                activeStepId={activeStepId}
-                onSelectStep={setActiveStepId}
-                onMapClick={handleMapClick}
-              />
-            </div>
 
-            {/* Sidebar Timeline & Story Log */}
-            <aside className="ps-route-sidebar">
-              {/* Weather Widget for latest stop */}
-              {currentLoc && (
-                <WeatherWidget
-                  lat={currentLoc.lat}
-                  lng={currentLoc.lng}
-                  locationName={currentLoc.name}
-                />
-              )}
-
-              <div className="ps-timeline-header">
-                <span className="ps-section-title">Step Journal ({steps.length})</span>
-                <button className="ps-btn-ghost-sm" onClick={() => setAddStepOpen(true)}>
-                  + Add Stop
+        {/* ── Tab: Journal (no map) ── */}
+        {activeTab === "journal" && (
+          <div style={{ padding: "16px" }}>
+            {/* Inline add step form or button */}
+            {addStepOpen
+              ? <AddStepInline onSave={handleSaveStep} onCancel={() => setAddStepOpen(false)} />
+              : (
+                <button onClick={() => setAddStepOpen(true)}
+                  style={{ width: "100%", padding: "12px", background: "#10B981", color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+                  <Plus size={17} /> Add Travel Stop
                 </button>
+              )
+            }
+
+            {steps.length === 0 && !addStepOpen ? (
+              <div style={{ textAlign: "center", padding: "50px 20px" }}>
+                <div style={{ fontSize: 44, marginBottom: 12 }}>📍</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#111827", marginBottom: 6 }}>No stops yet</div>
+                <div style={{ fontSize: 13, color: "#9CA3AF" }}>Tap "+ Add Travel Stop" to log where you went.</div>
               </div>
-
-              {steps.length === 0 ? (
-                <div className="ps-empty-timeline">
-                  <Navigation size={32} color="var(--em)" />
-                  <div className="ps-empty-title">No travel steps logged</div>
-                  <div className="ps-empty-sub">Click anywhere on the map or press Record Step to start your journey!</div>
-                </div>
-              ) : (
-                <div className="ps-timeline-list">
-                  {steps.map(step => (
-                    <motion.div
-                      key={step.id}
-                      className={`ps-step-card ${step.id === activeStepId ? 'active' : ''}`}
-                      onClick={() => setActiveStepId(step.id)}
-                      whileHover={{ x: 3 }}
-                    >
-                      <div className="ps-step-card-num">{step.stepNo}</div>
-                      <div className="ps-step-card-content">
-                        <div className="ps-step-card-title">{step.name}</div>
-                        <div className="ps-step-card-meta">
-                          <span>{step.date} · {step.time}</span>
-                          {step.distKm > 0 && <span className="ps-step-dist">+${step.distKm} km</span>}
-                        </div>
-                        {step.notes && <p className="ps-step-notes">{step.notes}</p>}
-
-                        {/* Photo thumbnails */}
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {steps.map(step => (
+                  <div key={step.id} style={{ background: "#fff", border: "1px solid #F3F4F6", borderRadius: 14, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#111827", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+                        {step.stepNo || "·"}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: "#111827" }}>{step.name}</div>
+                        <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>{step.date} · {step.time}</div>
+                        {step.notes && <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>{step.notes}</div>}
                         {step.photos?.length > 0 && (
-                          <div className="ps-step-photos">
+                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 8 }}>
                             {step.photos.map(p => (
-                              <img key={p.id} src={p.url} alt="" className="ps-step-photo-thumb" />
+                              <img key={p.id} src={p.url} alt="" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 8 }} />
                             ))}
                           </div>
                         )}
                       </div>
-                      <button
-                        className="ps-icon-del"
-                        onClick={e => { e.stopPropagation(); handleDeleteStep(step.id); }}
-                      >
-                        <Trash2 size={13} />
+                      <button onClick={() => handleDeleteStep(step.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#D1D5DB", padding: 4, flexShrink: 0 }}>
+                        <Trash2 size={14} />
                       </button>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </aside>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Tab 2: Highlights */}
-        {activeTab === 'highlights' && (
+        {/* ── Tab: Highlights ── */}
+        {activeTab === "highlights" && (
           <div className="ps-hl-tab">
-            {/* Gallery overlay */}
             {galleryOpen && highlights.length > 0 && (
-              <HighlightGallery
-                highlights={highlights}
-                startIndex={galleryIdx}
-                onClose={() => setGalleryOpen(false)}
-                onDelete={handleDeleteHighlight}
-              />
+              <HighlightGallery highlights={highlights} startIndex={galleryIdx} onClose={() => setGalleryOpen(false)} onDelete={handleDeleteHighlight} />
             )}
 
-            {/* Upload new highlight */}
-            <div className="ps-card" style={{ marginBottom: 20 }}>
-              <div className="ps-section-title"><Camera size={15} /> Add New Highlight Album</div>
-              <input
-                className="ps-input"
-                placeholder="Album title (e.g. Sunset at Baga Beach)"
-                value={hlTitle}
-                onChange={e => setHlTitle(e.target.value)}
-                style={{ marginBottom: 8 }}
-              />
-              <input
-                className="ps-input"
-                placeholder="Caption / memory note…"
-                value={hlCaption}
-                onChange={e => setHlCaption(e.target.value)}
-                style={{ marginBottom: 12 }}
-              />
-              <input
-                ref={hlFileRef}
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: 'none' }}
-                onChange={handleHlFiles}
-              />
-              <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                <motion.button
-                  className="ps-btn-ghost-sm"
-                  onClick={() => hlFileRef.current?.click()}
-                  whileTap={{ scale: 0.96 }}
-                  disabled={hlUploading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  <Camera size={15} /> {hlUploading ? 'Loading…' : 'Select Photos'}
-                </motion.button>
+            <div className="ps-card" style={{ marginBottom: 16 }}>
+              <div className="ps-section-title"><Camera size={15} /> Add Photos</div>
+              <input className="ps-input" placeholder="Album title (e.g. Sunset at Baga)" value={hlTitle} onChange={e => setHlTitle(e.target.value)} style={{ marginBottom: 8 }} />
+              <input className="ps-input" placeholder="Caption / memory..." value={hlCaption} onChange={e => setHlCaption(e.target.value)} style={{ marginBottom: 12 }} />
+              <input ref={hlFileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handleHlFiles} />
+              <div style={{ display: "flex", gap: 8, marginBottom: hlPreviews.length ? 10 : 0 }}>
+                <button className="ps-btn-ghost-sm" onClick={() => hlFileRef.current?.click()} disabled={hlUploading}
+                  style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Camera size={14} /> {hlUploading ? "Loading…" : "Select Photos"}
+                </button>
                 {hlPreviews.length > 0 && (
-                  <motion.button
-                    className="ps-btn-primary"
-                    onClick={saveHighlight}
-                    whileTap={{ scale: 0.96 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    Save {hlPreviews.length} Photo{hlPreviews.length > 1 ? 's' : ''}
-                  </motion.button>
+                  <button className="ps-btn-primary" onClick={saveHighlight} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    Save {hlPreviews.length} Photo{hlPreviews.length > 1 ? "s" : ""}
+                  </button>
                 )}
               </div>
-              {/* Preview grid */}
               {hlPreviews.length > 0 && (
                 <div className="ps-hl-preview-grid">
                   {hlPreviews.map(p => (
@@ -333,82 +282,54 @@ export default function TripWorkspace() {
               )}
             </div>
 
-            {/* Saved highlights grid */}
             {highlights.length === 0 ? (
-              <div className="ps-empty-timeline" style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <Camera size={40} color="var(--em)" style={{ margin: '0 auto 12px' }} />
+              <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                <Camera size={40} color="#D1D5DB" style={{ margin: "0 auto 12px" }} />
                 <div className="ps-empty-title">No highlights yet</div>
-                <div className="ps-empty-sub">Upload photos above to create your first highlight album!</div>
+                <div className="ps-empty-sub">Select photos above to create your first album!</div>
               </div>
             ) : (
               <div className="ps-hl-saved-grid">
-                {highlights.map((hl, idx) => {
-                  const firstPhoto = hl.photos?.[0]?.url;
-                  return (
-                    <motion.div
-                      key={hl.id}
-                      className="ps-hl-card"
-                      onClick={() => { setGalleryIdx(idx); setGalleryOpen(true); }}
-                      whileHover={{ y: -4, scale: 1.02 }}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      <div className="ps-hl-card-img">
-                        {firstPhoto
-                          ? <img src={firstPhoto} alt={hl.title} />
-                          : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 36 }}>📸</div>
-                        }
-                        <div className="ps-hl-card-count">{hl.photos?.length || 0} 📷</div>
-                      </div>
-                      <div className="ps-hl-card-body">
-                        <div className="ps-hl-card-title">{hl.title || 'Untitled Album'}</div>
-                        {hl.caption && <div className="ps-hl-card-cap">{hl.caption}</div>}
-                        <div className="ps-hl-card-date">{hl.createdAt ? new Date(hl.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                {highlights.map((hl, idx) => (
+                  <motion.div key={hl.id} className="ps-hl-card"
+                    onClick={() => { setGalleryIdx(idx); setGalleryOpen(true); }}
+                    whileTap={{ scale: 0.97 }}>
+                    <div className="ps-hl-card-img">
+                      {hl.photos?.[0]?.url
+                        ? <img src={hl.photos[0].url} alt={hl.title} />
+                        : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 32 }}>📸</div>
+                      }
+                      <div className="ps-hl-card-count">{hl.photos?.length || 0} 📷</div>
+                    </div>
+                    <div className="ps-hl-card-body">
+                      <div className="ps-hl-card-title">{hl.title || "Album"}</div>
+                      {hl.caption && <div className="ps-hl-card-cap">{hl.caption}</div>}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             )}
           </div>
         )}
 
-        {/* Tab 3: Day-by-Day Itinerary */}
-        {activeTab === 'itinerary' && (
-          <PolarstepsItinerary
-            tripId={id}
-            onConvertToStep={handleConvertItinToStep}
-          />
+        {/* ── Tab: Itinerary (inline, no tab switch) ── */}
+        {activeTab === "itinerary" && (
+          <PolarstepsItinerary tripId={id} onConvertToStep={s => { addPolarStep(id, s); reload(); }} />
         )}
 
-        {/* Tab 4: Must-Try Locations & Photo Spots */}
-        {activeTab === 'musttry' && (
-          <MustTryGuide
-            destination={trip.destination}
-            onAddToItinerary={handleSaveStep}
-          />
-        )}
+        {/* ── Tab: Expenses (no splitwise) ── */}
+        {activeTab === "expenses" && <PolarstepsExpenses tripId={id} />}
 
-        {/* Tab 5: Trip Stats */}
-        {activeTab === 'stats' && (
-          <PolarstepsStats steps={steps} />
-        )}
+        {/* ── Tab: Stats ── */}
+        {activeTab === "stats" && <PolarstepsStats steps={steps} />}
 
-        {/* Tab 6: Expenses & Splitwise */}
-        {activeTab === 'expenses' && (
-          <PolarstepsExpenses tripId={id} />
-        )}
+        {/* ── Tab: Badges ── */}
+        {activeTab === "badges" && <PolarstepsBadges steps={steps} />}
 
-        {/* Tab 7: Passport Stamps & Badges */}
-        {activeTab === 'badges' && (
-          <PolarstepsBadges steps={steps} />
-        )}
+        {/* ── Tab: Packing ── */}
+        {activeTab === "checklist" && <PolarstepsChecklist tripId={id} />}
 
-        {/* Tab 8: Packing List */}
-        {activeTab === 'checklist' && (
-          <PolarstepsChecklist tripId={id} />
-        )}
       </main>
     </div>
   );
 }
-

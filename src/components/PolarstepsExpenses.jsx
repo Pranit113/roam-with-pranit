@@ -95,41 +95,6 @@ export default function PolarstepsExpenses({ tripId }) {
       </div>
 
 
-      {/* Splitwise Balances Summary */}
-      <div className="ps-card ps-balances-card">
-        <div className="ps-section-title"><Users size={16} /> Group Balances ("Who owes whom")</div>
-        <div className="ps-balances-grid">
-          {Object.entries(balances).map(([member, bal]) => {
-            const isOwed = bal > 0.01;
-            const owes   = bal < -0.01;
-            const converted = convertCurrency(Math.abs(bal), 'INR', curr);
-
-            return (
-              <div key={member} className={`ps-balance-chip ${isOwed ? 'owed' : owes ? 'owes' : 'settled'}`}>
-                <div className="ps-balance-name">{member}</div>
-                <div className="ps-balance-amt">
-                  {isOwed && `Gets back ${formatCurrency(converted, curr)}`}
-                  {owes && `Owes ${formatCurrency(converted, curr)}`}
-                  {!isOwed && !owes && 'Settled up ✓'}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Add Member inline */}
-        <div className="ps-add-member-row">
-          <input
-            className="ps-input-sm"
-            placeholder="+ Add traveler name…"
-            value={newMember}
-            onChange={e => setNewMember(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addMember()}
-          />
-          <button className="ps-btn-ghost-sm" onClick={addMember}>Add</button>
-        </div>
-      </div>
-
       {/* Add Expense Form */}
       <form className="ps-card ps-expense-form" onSubmit={addExpense}>
         <div className="ps-section-title"><DollarSign size={16} /> Log New Expense</div>
