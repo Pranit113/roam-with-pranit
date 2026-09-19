@@ -19,9 +19,9 @@ function getUsers() {
 function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
 
 // ─── Session ──────────────────────────────────────────────────────────────────
+// Single-user personal app — always return local user, no login required
 export function getCurrentUser() {
-  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || null; }
-  catch { return null; }
+  return { name: 'Pranit', email: 'pranit@local' };
 }
 
 function setSession(user) {

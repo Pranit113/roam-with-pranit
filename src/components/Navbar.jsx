@@ -1,14 +1,12 @@
-﻿import React from 'react';
+import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Briefcase, User, Map, CreditCard } from 'lucide-react';
+import { Home, Briefcase, User } from 'lucide-react';
 import { getProfile } from '../utils/storage';
 
 const NAV_ITEMS = [
-  { path: '/home',         icon: Home,       label: 'Home'         },
-  { path: '/trips',        icon: Briefcase,  label: 'Trips'        },
-  { path: '/scratchmap',   icon: Map,        label: 'Map'          },
-  { path: '/transactions', icon: CreditCard, label: 'Wallet'       },
-  { path: '/profile',      icon: User,       label: 'Profile'      },
+  { path: '/home',    icon: Home,      label: 'Home'    },
+  { path: '/trips',   icon: Briefcase, label: 'Trips'   },
+  { path: '/profile', icon: User,      label: 'Profile' },
 ];
 
 export default function Navbar() {
@@ -17,7 +15,6 @@ export default function Navbar() {
   const profile   = getProfile();
 
   if (location.pathname.startsWith('/trip/')) return null;
-  if (location.pathname === '/scratchmap')    return null;
 
   const isActive = (path) =>
     path === '/home'
@@ -28,7 +25,7 @@ export default function Navbar() {
     <>
       <aside className="sidebar">
         <div className="sidebar-logo">
-          🌿 RoamWith<span>Pranit</span>
+          RoamWith<span>Pranit</span>
         </div>
         <nav className="sidebar-nav">
           {NAV_ITEMS.map(({ path, icon: Icon, label }) => (

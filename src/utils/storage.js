@@ -12,6 +12,7 @@ const KEYS = {
   CHALLENGES: 'rwp_challenges',
   TRANSACTIONS: 'rwp_transactions',
   GEO_CACHE: 'rwp_geo_cache',
+  PLACES: 'rwp_places',
 };
 
 function read(key, fallback) {
@@ -22,83 +23,11 @@ function write(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
 }
 
-const INITIAL_TRIPS = [
-  {
-    id: 'demo-goa',
-    name: 'Goa Coastal Adventure',
-    emoji: '🏖️',
-    cover: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&fit=crop',
-    subtitle: 'Sun, sand, and coastal vibes',
-    destination: 'Goa, India',
-    country: 'India',
-    stateOfIndia: 'Goa',
-    startDate: '2026-09-10',
-    endDate: '2026-09-16',
-    status: 'upcoming',
-    currency: '₹',
-    budget: 35000,
-    tags: ['Beach', 'Seafood', 'Sunset'],
-    highlights: [
-      {
-        id: 'hl-goa-1',
-        title: 'Baga & Anjuna Sunsets',
-        caption: 'Golden hour at the beach',
-        createdAt: new Date().toISOString(),
-        photos: [
-          { id: 'p1', url: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&fit=crop' },
-          { id: 'p2', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&fit=crop' },
-          { id: 'p3', url: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&fit=crop' },
-        ]
-      }
-    ],
-    expenses: [
-      { id: 'exp-1', label: 'Beachside Villa Stay', amount: 14000, category: 'stay', date: '2026-09-10' },
-      { id: 'exp-2', label: 'Scuba Diving & Watersports', amount: 5500, category: 'activity', date: '2026-09-12' },
-      { id: 'exp-3', label: 'Goan Fish Curry & Dinners', amount: 3800, category: 'food', date: '2026-09-13' },
-    ],
-  },
-  {
-    id: 'demo-paris',
-    name: 'Paris Romance & Art',
-    emoji: '🗼',
-    cover: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&fit=crop',
-    subtitle: 'Louvre, Eiffel Tower, and Croissants',
-    destination: 'Paris, France',
-    country: 'France',
-    startDate: '2026-10-05',
-    endDate: '2026-10-12',
-    status: 'planning',
-    currency: '€',
-    budget: 120000,
-    tags: ['Art', 'Culture', 'Pastry'],
-    highlights: [
-      {
-        id: 'hl-paris-1',
-        title: 'Eiffel Tower at Night',
-        caption: 'Sparkling lights across the Seine',
-        createdAt: new Date().toISOString(),
-        photos: [
-          { id: 'pp1', url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&fit=crop' },
-          { id: 'pp2', url: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&fit=crop' },
-        ]
-      }
-    ],
-    expenses: [
-      { id: 'exp-p1', label: 'Flight to Paris CDG', amount: 48000, category: 'flight', date: '2026-10-05' },
-      { id: 'exp-p2', label: 'Louvre Museum Tour', amount: 3200, category: 'activity', date: '2026-10-07' },
-    ],
-  }
-];
-
 // ─── Trips ───────────────────────────────────────────────────────────────────
 export function getTrips() {
-  const existing = read(KEYS.TRIPS, null);
-  if (!existing || existing.length === 0) {
-    write(KEYS.TRIPS, INITIAL_TRIPS);
-    return INITIAL_TRIPS;
-  }
-  return existing;
+  return read(KEYS.TRIPS, []);
 }
+
 export function saveTrips(trips) { write(KEYS.TRIPS, trips); }
 
 export function getTrip(id) {
@@ -321,6 +250,32 @@ export function setGeoCache(key, coords) {
   cache[key] = coords;
   write(KEYS.GEO_CACHE, cache);
 }
+
+// ─── Places ──────────────────────────────────────────────────────────────────
+// Place schema: { id, name, category, address, tripId, tripName, note, createdAt }
+export function getPlaces() { return read(KEYS.PLACES, []); }
+
+export function addPlace(data) {
+  const places = getPlaces();
+  const place = { id: uuid(), createdAt: new Date().toISOString(), ...data };
+  places.push(place);
+  write(KEYS.PLACES, places);
+  return place;
+}
+
+export function deletePlace(id) {
+  write(KEYS.PLACES, getPlaces().filter(p => p.id !== id));
+}
+
+export function updatePlace(id, updates) {
+  const places = getPlaces();
+  const idx = places.findIndex(p => p.id === id);
+  if (idx === -1) return null;
+  places[idx] = { ...places[idx], ...updates };
+  write(KEYS.PLACES, places);
+  return places[idx];
+}
+
 
 
 // ─── Journal ─────────────────────────────────────────────────────────────────

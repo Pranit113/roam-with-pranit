@@ -57,29 +57,43 @@ export default function PolarstepsExpenses({ tripId }) {
 
   return (
     <div className="ps-expenses-root">
-      {/* Top Header & Currency Selector */}
-      <div className="ps-card ps-expenses-header">
-        <div className="ps-expenses-summary">
-          <div className="ps-stat-label">Total Trip Expenses</div>
-          <div className="ps-stat-value">{formatCurrency(totalSpent, curr)}</div>
-          <div className="ps-stat-sub">{expData.expenses.length} transactions logged</div>
+      {/* ── Prominent Total Card at very top ── */}
+      <div style={{ background: '#fff', border: '1.5px solid #D1FAE5', borderRadius: 18, padding: '18px 20px', marginBottom: 16, boxShadow: '0 2px 12px rgba(16,185,129,0.08)' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', marginBottom: 4 }}>Total Expenses</div>
+        <div style={{ fontSize: 32, fontWeight: 900, color: '#10B981', letterSpacing: '-0.03em', marginBottom: 12 }}>
+          {formatCurrency(totalSpent, curr)}
         </div>
+        {/* Category breakdown */}
+        {(() => {
+          const cats = {};
+          expData.expenses.forEach(e => {
+            const k = e.category || 'Other';
+            cats[k] = (cats[k] || 0) + (Number(e.amount) || 0);
+          });
+          const icons = { Stay:'🏨', Food:'🍽️', Activity:'🎯', Flight:'✈️', Transport:'🚗', Shopping:'🛍️', Other:'📍' };
+          return Object.keys(cats).length > 0 ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {Object.entries(cats).map(([k, v]) => (
+                <div key={k} style={{ background: '#F0FDF4', borderRadius: 99, padding: '4px 12px', fontSize: 12, fontWeight: 700, color: '#065F46', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {icons[k] || '📍'} {k} {formatCurrency(v, curr)}
+                </div>
+              ))}
+            </div>
+          ) : null;
+        })()}
+        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 10 }}>{expData.expenses.length} transaction{expData.expenses.length !== 1 ? 's' : ''} logged</div>
 
-        <div className="ps-currency-selector">
-          <label className="ps-label"><ArrowRightLeft size={13} /> Currency</label>
-          <div className="ps-curr-pills">
-            {Object.keys(CURRENCIES).map(c => (
-              <button
-                key={c}
-                className={`ps-curr-pill ${curr === c ? 'active' : ''}`}
-                onClick={() => handleCurrencyChange(c)}
-              >
-                {CURRENCIES[c].symbol} {c}
-              </button>
-            ))}
-          </div>
+        {/* Currency selector */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6' }}>
+          {Object.keys(CURRENCIES).map(c => (
+            <button key={c} onClick={() => handleCurrencyChange(c)}
+              style={{ padding: '4px 12px', borderRadius: 99, border: curr === c ? '1.5px solid #10B981' : '1.5px solid #E5E7EB', background: curr === c ? '#F0FDF4' : '#fff', color: curr === c ? '#10B981' : '#6B7280', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+              {CURRENCIES[c].symbol} {c}
+            </button>
+          ))}
         </div>
       </div>
+
 
       {/* Splitwise Balances Summary */}
       <div className="ps-card ps-balances-card">

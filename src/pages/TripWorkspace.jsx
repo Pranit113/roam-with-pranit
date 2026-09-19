@@ -142,7 +142,7 @@ export default function TripWorkspace() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <div className="ps-trip-title">{trip.title || trip.destination || 'My Journey'}</div>
+            <div className="ps-trip-title">{trip.name || trip.destination || 'My Journey'}</div>
             <div className="ps-trip-sub">
               <span>{trip.destination || 'Polarsteps Traveler'}</span>
               <span>·</span>
