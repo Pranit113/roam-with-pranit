@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, MapPin, ChevronRight, X } from "lucide-react";
+import { Search, Plus, ChevronRight, X } from "lucide-react";
 import { getTrips, getProfile, normalizeHighlight } from "../utils/storage";
 
 function greeting() {
@@ -99,7 +99,7 @@ function HighlightRing({ trip, onOpen }) {
         <div style={{ width: "100%", height: "100%", borderRadius: "50%", border: "2.5px solid white", overflow: "hidden", background: "#F3F4F6" }}>
           {firstPhoto
             ? <img src={firstPhoto} alt={trip.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{trip.emoji || "✈️"}</div>
+            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{trip.emoji || "âœˆï¸"}</div>
           }
         </div>
       </div>
@@ -110,7 +110,7 @@ function HighlightRing({ trip, onOpen }) {
   );
 }
 
-/* Small compact trip card — same style for all trips, no hero card */
+/* Small compact trip card â€” same style for all trips, no hero card */
 function TripCard({ trip, onClick }) {
   return (
     <motion.div onClick={onClick} whileTap={{ scale: 0.97 }}
@@ -119,17 +119,17 @@ function TripCard({ trip, onClick }) {
       <div style={{ width: 60, height: 60, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>
         {trip.cover
           ? <img src={trip.cover} alt={trip.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : (trip.emoji || "✈️")
+          : (trip.emoji || "âœˆï¸")
         }
       </div>
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{trip.emoji} {trip.name}</div>
-        {trip.destination && <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>📍 {trip.destination}</div>}
+        {trip.destination && <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>ðŸ“ {trip.destination}</div>}
         <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: statusColor(trip.status), display: "inline-block", flexShrink: 0 }} />
           <span style={{ textTransform: "capitalize" }}>{trip.status || "Planning"}</span>
-          {trip.startDate && <span> · {fmtDate(trip.startDate)}</span>}
+          {trip.startDate && <span> Â· {fmtDate(trip.startDate)}</span>}
         </div>
       </div>
       <ChevronRight size={17} color="#D1D5DB" style={{ flexShrink: 0 }} />
@@ -175,7 +175,7 @@ export default function Home() {
       </div>
 
       <div style={{ padding: "6px 20px 0", fontSize: 14, color: "#9CA3AF", fontWeight: 500 }}>
-        {greeting()}, {profile.name || "Pranit"} ✈️
+        {greeting()}, {profile.name || "Pranit"} âœˆï¸
       </div>
 
       {/* Search bar */}
@@ -214,7 +214,7 @@ export default function Home() {
 
         {filteredTrips.length === 0 ? (
           <div style={{ textAlign: "center", padding: "50px 0" }}>
-            <div style={{ fontSize: 48, marginBottom: 14 }}>✈️</div>
+            <div style={{ fontSize: 48, marginBottom: 14 }}>âœˆï¸</div>
             <div style={{ fontSize: 18, fontWeight: 900, color: "#111827", marginBottom: 8 }}>
               {search ? "No trips found" : "No journeys yet"}
             </div>
@@ -242,7 +242,7 @@ export default function Home() {
         <div style={{ padding: "20px 20px 0" }}>
           <motion.div onClick={() => navigate("/places")} whileTap={{ scale: 0.98 }}
             style={{ background: "#F0FDF4", borderRadius: 14, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, border: "1px solid #D1FAE5" }}>
-            <div style={{ fontSize: 24 }}>🗺️</div>
+            <div style={{ fontSize: 24 }}>ðŸ—ºï¸</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 800, fontSize: 14, color: "#111827" }}>My Places</div>
               <div style={{ fontSize: 12, color: "#6B7280", marginTop: 1 }}>Hotels, restaurants, activities & more</div>

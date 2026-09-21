@@ -1,25 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, FileText, Download, Trash2, Camera, X, MapPin, Navigation } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Download, Trash2, Camera, X } from "lucide-react";
 import { getTrip, addHighlight, deleteHighlight, normalizeHighlight, uuid } from "../utils/storage";
 import { getPolarSteps, addPolarStep, deletePolarStep } from "../utils/polarstepsStorage";
 import PolarstepsItinerary from "../components/PolarstepsItinerary";
 import PolarstepsStats     from "../components/PolarstepsStats";
 import PolarstepsExpenses  from "../components/PolarstepsExpenses";
-import PolarstepsBadges    from "../components/PolarstepsBadges";
 import PolarstepsChecklist from "../components/PolarstepsChecklist";
 import HighlightGallery    from "../components/HighlightGallery";
 import { exportPolarstepsPDF } from "../utils/polarstepsPdf";
 
 const TABS = [
-  { id: "journal",   label: "📍 Journal"    },
-  { id: "highlights",label: "📸 Highlights" },
-  { id: "itinerary", label: "📅 Itinerary"  },
-  { id: "expenses",  label: "💰 Expenses"   },
-  { id: "stats",     label: "📊 Stats"      },
-  { id: "badges",    label: "🏆 Badges"     },
-  { id: "checklist", label: "🎒 Packing"    },
+  { id: "journal",   label: "Ã°Å¸â€œÂ Journal"    },
+  { id: "highlights",label: "Ã°Å¸â€œÂ¸ Highlights" },
+  { id: "itinerary", label: "Ã°Å¸â€œâ€¦ Itinerary"  },
+  { id: "expenses",  label: "Ã°Å¸â€™Â° Expenses"   },
+  { id: "stats",     label: "Ã°Å¸â€œÅ  Stats"      },
+  { id: "checklist", label: "Ã°Å¸Å½â€™ Packing"    },
 ];
 
 /* Inline Add-Step form */
@@ -47,11 +45,9 @@ function AddStepInline({ onSave, onCancel }) {
     onSave({ id: uuid(), stepNo: Date.now(), name: name.trim(), date, time, notes, transport, photos, distKm: 0 });
   }
 
-  const inp = { width: "100%", padding: "10px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit", background: "#fff" };
-
   return (
     <div style={{ background: "#F9FAFB", borderRadius: 14, padding: "14px", border: "1.5px solid #E5E7EB", marginBottom: 12 }}>
-      <div style={{ fontWeight: 800, fontSize: 14, color: "#111827", marginBottom: 10 }}>📍 Add Travel Stop</div>
+      <div style={{ fontWeight: 800, fontSize: 14, color: "#111827", marginBottom: 10 }}>Ã°Å¸â€œÂ Add Travel Stop</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Place name (e.g. Old Manali)" style={inp} />
         <div style={{ display: "flex", gap: 8 }}>
@@ -59,12 +55,12 @@ function AddStepInline({ onSave, onCancel }) {
           <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ ...inp, flex: 1 }} />
         </div>
         <select value={transport} onChange={e => setTransport(e.target.value)} style={{ ...inp }}>
-          <option value="car">🚗 Car</option>
-          <option value="flight">✈️ Flight</option>
-          <option value="train">🚆 Train</option>
-          <option value="bus">🚌 Bus</option>
-          <option value="hike">🥾 Hike</option>
-          <option value="boat">⛵ Boat</option>
+          <option value="car">Ã°Å¸Å¡â€” Car</option>
+          <option value="flight">Ã¢Å“Ë†Ã¯Â¸Â Flight</option>
+          <option value="train">Ã°Å¸Å¡â€  Train</option>
+          <option value="bus">Ã°Å¸Å¡Å’ Bus</option>
+          <option value="hike">Ã°Å¸Â¥Â¾ Hike</option>
+          <option value="boat">Ã¢â€ºÂµ Boat</option>
         </select>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes / memories..." rows={2}
           style={{ ...inp, resize: "none" }} />
@@ -161,8 +157,6 @@ export default function TripWorkspace() {
   if (!trip) return null;
 
   const highlights = (trip.highlights || []).map(normalizeHighlight);
-  const inp = { width: "100%", padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: 12, fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 8 };
-
   return (
     <div className="ps-workspace-root">
       {/* Header */}
@@ -173,7 +167,7 @@ export default function TripWorkspace() {
             <div className="ps-trip-title">{trip.name || trip.destination || "My Journey"}</div>
             <div className="ps-trip-sub">
               <span>{trip.destination || "Traveler"}</span>
-              <span>·</span>
+              <span>Ã‚Â·</span>
               <span className="ps-badge-km">{steps.length} stop{steps.length !== 1 ? "s" : ""}</span>
             </div>
           </div>
@@ -196,7 +190,7 @@ export default function TripWorkspace() {
 
       <main className="ps-workspace-main">
 
-        {/* ── Tab: Journal (no map) ── */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tab: Journal (no map) Ã¢â€â‚¬Ã¢â€â‚¬ */}
         {activeTab === "journal" && (
           <div style={{ padding: "16px" }}>
             {/* Inline add step form or button */}
@@ -212,7 +206,7 @@ export default function TripWorkspace() {
 
             {steps.length === 0 && !addStepOpen ? (
               <div style={{ textAlign: "center", padding: "50px 20px" }}>
-                <div style={{ fontSize: 44, marginBottom: 12 }}>📍</div>
+                <div style={{ fontSize: 44, marginBottom: 12 }}>Ã°Å¸â€œÂ</div>
                 <div style={{ fontSize: 17, fontWeight: 800, color: "#111827", marginBottom: 6 }}>No stops yet</div>
                 <div style={{ fontSize: 13, color: "#9CA3AF" }}>Tap "+ Add Travel Stop" to log where you went.</div>
               </div>
@@ -222,11 +216,11 @@ export default function TripWorkspace() {
                   <div key={step.id} style={{ background: "#fff", border: "1px solid #F3F4F6", borderRadius: 14, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                       <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#111827", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
-                        {step.stepNo || "·"}
+                        {step.stepNo || "Ã‚Â·"}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 800, fontSize: 14, color: "#111827" }}>{step.name}</div>
-                        <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>{step.date} · {step.time}</div>
+                        <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>{step.date} Ã‚Â· {step.time}</div>
                         {step.notes && <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>{step.notes}</div>}
                         {step.photos?.length > 0 && (
                           <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 8 }}>
@@ -247,7 +241,7 @@ export default function TripWorkspace() {
           </div>
         )}
 
-        {/* ── Tab: Highlights ── */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tab: Highlights Ã¢â€â‚¬Ã¢â€â‚¬ */}
         {activeTab === "highlights" && (
           <div className="ps-hl-tab">
             {galleryOpen && highlights.length > 0 && (
@@ -262,7 +256,7 @@ export default function TripWorkspace() {
               <div style={{ display: "flex", gap: 8, marginBottom: hlPreviews.length ? 10 : 0 }}>
                 <button className="ps-btn-ghost-sm" onClick={() => hlFileRef.current?.click()} disabled={hlUploading}
                   style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Camera size={14} /> {hlUploading ? "Loading…" : "Select Photos"}
+                  <Camera size={14} /> {hlUploading ? "LoadingÃ¢â‚¬Â¦" : "Select Photos"}
                 </button>
                 {hlPreviews.length > 0 && (
                   <button className="ps-btn-primary" onClick={saveHighlight} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -297,9 +291,9 @@ export default function TripWorkspace() {
                     <div className="ps-hl-card-img">
                       {hl.photos?.[0]?.url
                         ? <img src={hl.photos[0].url} alt={hl.title} />
-                        : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 32 }}>📸</div>
+                        : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 32 }}>Ã°Å¸â€œÂ¸</div>
                       }
-                      <div className="ps-hl-card-count">{hl.photos?.length || 0} 📷</div>
+                      <div className="ps-hl-card-count">{hl.photos?.length || 0} Ã°Å¸â€œÂ·</div>
                     </div>
                     <div className="ps-hl-card-body">
                       <div className="ps-hl-card-title">{hl.title || "Album"}</div>
@@ -312,21 +306,18 @@ export default function TripWorkspace() {
           </div>
         )}
 
-        {/* ── Tab: Itinerary (inline, no tab switch) ── */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tab: Itinerary (inline, no tab switch) Ã¢â€â‚¬Ã¢â€â‚¬ */}
         {activeTab === "itinerary" && (
           <PolarstepsItinerary tripId={id} onConvertToStep={s => { addPolarStep(id, s); reload(); }} />
         )}
 
-        {/* ── Tab: Expenses (no splitwise) ── */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tab: Expenses (no splitwise) Ã¢â€â‚¬Ã¢â€â‚¬ */}
         {activeTab === "expenses" && <PolarstepsExpenses tripId={id} />}
 
-        {/* ── Tab: Stats ── */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tab: Stats Ã¢â€â‚¬Ã¢â€â‚¬ */}
         {activeTab === "stats" && <PolarstepsStats steps={steps} />}
 
-        {/* ── Tab: Badges ── */}
-        {activeTab === "badges" && <PolarstepsBadges steps={steps} />}
-
-        {/* ── Tab: Packing ── */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tab: Packing Ã¢â€â‚¬Ã¢â€â‚¬ */}
         {activeTab === "checklist" && <PolarstepsChecklist tripId={id} />}
 
       </main>

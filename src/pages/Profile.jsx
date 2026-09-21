@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Trophy, Edit3, Check, Flame, Zap } from 'lucide-react';
+import { Star, Trophy, Edit3, Check, Flame } from 'lucide-react';
 import { getTrips, getProfile, saveProfile, getStreak, calcXP, getLevel } from '../utils/storage';
 import BottomSheet from '../components/BottomSheet';
 
-/* ── Animated counter ────────────────────────────────────────── */
+/* â”€â”€ Animated counter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function AnimCount({ to, prefix = '', suffix = '' }) {
   const [val, setVal] = useState(0);
   useEffect(() => {
@@ -21,16 +21,16 @@ function fmtDate(d) {
   return new Date(d + 'T12:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
 }
 
-/* ── Achievements ────────────────────────────────────────────── */
+/* â”€â”€ Achievements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const ACHIEVEMENTS = [
-  { emoji:'🏆', name:'First Trip',      cond: t => t >= 1 },
-  { emoji:'✈️', name:'Frequent Flyer',  cond: t => t >= 3 },
-  { emoji:'🌏', name:'Globe Trotter',   cond: (_, c) => c >= 3 },
-  { emoji:'📸', name:'Memory Maker',    cond: (_, __, p) => p >= 5 },
-  { emoji:'🗺️', name:'Map Master',     cond: (_, __, ___, pins) => pins >= 10 },
-  { emoji:'📅', name:'Long Hauler',     cond: (_, __, ___, ____, d) => d >= 30 },
-  { emoji:'🇮🇳', name:'Desi Explorer',   cond: (_, __, ___, ____, _____, s) => s >= 3 },
-  { emoji:'🚲', name:'Bharat Yatri',    cond: (_, __, ___, ____, _____, s) => s >= 7 },
+  { emoji:'ðŸ†', name:'First Trip',      cond: t => t >= 1 },
+  { emoji:'âœˆï¸', name:'Frequent Flyer',  cond: t => t >= 3 },
+  { emoji:'ðŸŒ', name:'Globe Trotter',   cond: (_, c) => c >= 3 },
+  { emoji:'ðŸ“¸', name:'Memory Maker',    cond: (_, __, p) => p >= 5 },
+  { emoji:'ðŸ—ºï¸', name:'Map Master',     cond: (_, __, ___, pins) => pins >= 10 },
+  { emoji:'ðŸ“…', name:'Long Hauler',     cond: (_, __, ___, ____, d) => d >= 30 },
+  { emoji:'ðŸ‡®ðŸ‡³', name:'Desi Explorer',   cond: (_, __, ___, ____, _____, s) => s >= 3 },
+  { emoji:'ðŸš²', name:'Bharat Yatri',    cond: (_, __, ___, ____, _____, s) => s >= 7 },
 ];
 
 export default function Profile() {
@@ -74,7 +74,7 @@ export default function Profile() {
     if (m[label]) setStatSheet(m[label]);
   }
 
-  /* ── Fix: defer selectedLoc open after statSheet closes ── */
+  /* â”€â”€ Fix: defer selectedLoc open after statSheet closes â”€â”€ */
   function openLocation(type, name) {
     if (statSheet) {
       setStatSheet(null);
@@ -106,13 +106,13 @@ export default function Profile() {
   const plannedStates   = [...new Set(trips.filter(t => t.status === 'planning' || t.status === 'upcoming').map(t => t.stateOfIndia).filter(Boolean))];
 
   const STATS = [
-    { icon:'✈️', label:'Trips',      val:totalTrips, color:'var(--em)',     bg:'var(--em-50)' },
-    { icon:'🌍', label:'Countries',  val:countries,  color:'var(--sky)',    bg:'var(--sky-50)' },
-    { icon:'🇮🇳', label:'States (IN)',val:states,     color:'var(--orange)', bg:'#FFF7ED' },
-    { icon:'📅', label:'Days Away',  val:days,       color:'var(--purple)', bg:'var(--purple-50)' },
-    { icon:'📍', label:'Places',     val:pins,       color:'var(--rose)',   bg:'var(--rose-50)' },
-    { icon:'🎭', label:'Activities', val:acts,       color:'#6366F1',       bg:'#EEF2FF' },
-    { icon:'📸', label:'Photos',     val:photos,     color:'var(--amber)',  bg:'var(--amber-50)' },
+    { icon:'âœˆï¸', label:'Trips',      val:totalTrips, color:'var(--em)',     bg:'var(--em-50)' },
+    { icon:'ðŸŒ', label:'Countries',  val:countries,  color:'var(--sky)',    bg:'var(--sky-50)' },
+    { icon:'ðŸ‡®ðŸ‡³', label:'States (IN)',val:states,     color:'var(--orange)', bg:'#FFF7ED' },
+    { icon:'ðŸ“…', label:'Days Away',  val:days,       color:'var(--purple)', bg:'var(--purple-50)' },
+    { icon:'ðŸ“', label:'Places',     val:pins,       color:'var(--rose)',   bg:'var(--rose-50)' },
+    { icon:'ðŸŽ­', label:'Activities', val:acts,       color:'#6366F1',       bg:'#EEF2FF' },
+    { icon:'ðŸ“¸', label:'Photos',     val:photos,     color:'var(--amber)',  bg:'var(--amber-50)' },
   ];
 
   const xp    = calcXP(trips);
@@ -121,7 +121,7 @@ export default function Profile() {
   return (
     <div className="page" style={{ background:'#F8FAFC', paddingTop:0 }}>
 
-      {/* ── Hero gradient ── */}
+      {/* â”€â”€ Hero gradient â”€â”€ */}
       <div style={{ background:'linear-gradient(135deg,var(--em),var(--sky))', padding:'52px 20px 90px', textAlign:'center' }}>
         {/* Avatar */}
         <div style={{ width:86, height:86, borderRadius:'50%', background:'rgba(255,255,255,.2)', backdropFilter:'blur(10px)', border:'3px solid rgba(255,255,255,.6)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px', fontSize:36, fontWeight:900, color:'white' }}>
@@ -135,7 +135,7 @@ export default function Profile() {
               placeholder="Your name" />
             <input value={dBio} onChange={e => setDBio(e.target.value)}
               style={{ background:'rgba(255,255,255,.2)', border:'1.5px solid rgba(255,255,255,.5)', borderRadius:10, padding:'7px 14px', color:'white', fontFamily:'Outfit', fontSize:13, textAlign:'center', width:260, outline:'none' }}
-              placeholder="Short bio…" />
+              placeholder="Short bioâ€¦" />
             <input value={dCity} onChange={e => setDCity(e.target.value)}
               style={{ background:'rgba(255,255,255,.2)', border:'1.5px solid rgba(255,255,255,.5)', borderRadius:10, padding:'7px 14px', color:'white', fontFamily:'Outfit', fontSize:13, textAlign:'center', width:260, outline:'none' }}
               placeholder="Home city (e.g. Mumbai)" />
@@ -152,10 +152,10 @@ export default function Profile() {
             {profile.bio && <div style={{ fontSize:13, color:'rgba(255,255,255,.85)', marginTop:4 }}>{profile.bio}</div>}
             {(profile.homeCity || profile.homeCountry) && (
               <div style={{ fontSize:12, color:'rgba(255,255,255,.8)', marginTop:3 }}>
-                🏠 {[profile.homeCity, profile.homeCountry].filter(Boolean).join(', ')}
+                ðŸ  {[profile.homeCity, profile.homeCountry].filter(Boolean).join(', ')}
               </div>
             )}
-            <div style={{ fontSize:12, color:'rgba(255,255,255,.7)', marginTop:6 }}>{done} completed · {totalTrips} total trips</div>
+            <div style={{ fontSize:12, color:'rgba(255,255,255,.7)', marginTop:6 }}>{done} completed Â· {totalTrips} total trips</div>
             <button onClick={() => setEditing(true)} style={{ marginTop:12, background:'rgba(255,255,255,.18)', border:'1px solid rgba(255,255,255,.4)', borderRadius:10, padding:'8px 18px', color:'white', fontFamily:'Outfit', fontSize:13, fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
               <Edit3 size={13} /> Edit Profile
             </button>
@@ -164,10 +164,10 @@ export default function Profile() {
       </div>
 
 
-      {/* ── Stats card (overlapping hero) ── */}
+      {/* â”€â”€ Stats card (overlapping hero) â”€â”€ */}
       <div style={{ margin:'-48px 20px 24px', background:'white', borderRadius:22, padding:'20px 16px', boxShadow:'var(--sh-lg)', position:'relative', zIndex:5 }}>
         <div style={{ fontWeight:800, fontSize:15, color:'var(--t1)', marginBottom:14, textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-          📊 Travel Stats
+          ðŸ“Š Travel Stats
         </div>
         <div className="stats-grid-premium">
           {STATS.map((s, i) => (
@@ -193,13 +193,13 @@ export default function Profile() {
 
         {spent > 0 && (
           <div style={{ marginTop:14, background:'var(--g50)', borderRadius:14, padding:'14px 16px', textAlign:'center' }}>
-            <div style={{ fontWeight:900, fontSize:22, color:'var(--em)' }}>₹<AnimCount to={Math.round(spent)} /></div>
+            <div style={{ fontWeight:900, fontSize:22, color:'var(--em)' }}>â‚¹<AnimCount to={Math.round(spent)} /></div>
             <div style={{ fontSize:11, color:'var(--t3)', fontWeight:700, marginTop:2, textTransform:'uppercase', letterSpacing:'.05em' }}>Total Spent Across All Trips</div>
           </div>
         )}
       </div>
 
-      {/* ── Quick Nav Cards ── */}
+      {/* â”€â”€ Quick Nav Cards â”€â”€ */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, margin:'0 20px 20px' }}>
         <motion.div whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
           onClick={()=>navigate('/challenges')}
@@ -211,28 +211,17 @@ export default function Profile() {
             <Flame size={12} color="#FCD34D" fill="#FCD34D"/>
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.85)', fontWeight:700 }}>{streak.count}d streak</span>
           </div>
-          <div style={{ position:'absolute', bottom:10, right:14, fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)' }}>Tap →</div>
+          <div style={{ position:'absolute', bottom:10, right:14, fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)' }}>Tap â†’</div>
         </motion.div>
-        <motion.div whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
-          onClick={()=>navigate('/scratchmap')}
-          style={{ background:'linear-gradient(135deg,#0F172A,#1E3A5F)', borderRadius:18, padding:'16px', cursor:'pointer', position:'relative', overflow:'hidden' }}>
-          <div style={{ fontSize:24, marginBottom:6 }}>🗺️</div>
-          <div style={{ fontSize:13, fontWeight:900, color:'white' }}>Scratch Map</div>
-          <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', fontWeight:600 }}>{countries} countries visited</div>
-          <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:6 }}>
-            <Zap size={12} color="#FCD34D" fill="#FCD34D"/>
-            <span style={{ fontSize:11, color:'rgba(255,255,255,0.85)', fontWeight:700 }}>{xp.toLocaleString()} XP</span>
-          </div>
-          <div style={{ position:'absolute', bottom:10, right:14, fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)' }}>Tap →</div>
-        </motion.div>
+
       </div>
 
-      {/* ── Geographic Breakdown ── */}
+      {/* â”€â”€ Geographic Breakdown â”€â”€ */}
       <div style={{ margin:'0 20px 24px', background:'white', borderRadius:22, padding:'20px 18px', border:'1.5px solid var(--border)', boxShadow:'var(--sh-xs)' }}>
         <div style={{ fontWeight:800, fontSize:15, color:'var(--t1)', marginBottom:4, display:'flex', alignItems:'center', gap:6 }}>
-          🗺️ Travel Map Registry
+          ðŸ—ºï¸ Travel Map Registry
         </div>
-        <div style={{ fontSize:12, color:'var(--t3)', marginBottom:16 }}>Tap any location tag to view your trips there 👆</div>
+        <div style={{ fontSize:12, color:'var(--t3)', marginBottom:16 }}>Tap any location tag to view your trips there ðŸ‘†</div>
         
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           
@@ -332,7 +321,7 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* ── Trips by Location Sheet ── */}
+      {/* â”€â”€ Trips by Location Sheet â”€â”€ */}
       <BottomSheet open={!!selectedLoc} onClose={() => setSelectedLoc(null)} title={selectedLoc ? `Trips in ${selectedLoc.name}` : ''}>
         {selectedLoc && (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
@@ -345,11 +334,11 @@ export default function Profile() {
               }
             }).map(t => (
               <div key={t.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', border:'1.5px solid var(--border)', borderRadius:16, background:'white', boxShadow:'var(--sh-xs)' }}>
-                <span style={{ fontSize:28 }}>{t.emoji || '✈️'}</span>
+                <span style={{ fontSize:28 }}>{t.emoji || 'âœˆï¸'}</span>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontWeight:800, fontSize:14, color:'var(--t1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t.name}</div>
                   <div style={{ fontSize:12, color:'var(--t3)', marginTop:2 }}>
-                    📍 {t.destination || 'No destination'} · {t.startDate ? fmtDate(t.startDate) : 'No date'}
+                    ðŸ“ {t.destination || 'No destination'} Â· {t.startDate ? fmtDate(t.startDate) : 'No date'}
                   </div>
                 </div>
                 <button className="btn btn-sm btn-secondary" onClick={() => { setSelectedLoc(null); navigate(`/trip/${t.id}`); }} style={{ padding:'7px 12px', fontSize:12 }}>
@@ -361,7 +350,7 @@ export default function Profile() {
         )}
       </BottomSheet>
 
-      {/* ── Global Stats List Sheet ── */}
+      {/* â”€â”€ Global Stats List Sheet â”€â”€ */}
       <BottomSheet
         open={!!statSheet}
         onClose={() => setStatSheet(null)}
@@ -384,11 +373,11 @@ export default function Profile() {
                 if (!list.length) return <div style={{ color:'var(--t3)', textAlign:'center', padding:20 }}>No trips in this list</div>;
                 return list.map(t => (
                   <div key={t.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', border:'1.5px solid var(--border)', borderRadius:16, background:'white', boxShadow:'var(--sh-xs)' }}>
-                    <span style={{ fontSize:28 }}>{t.emoji || '✈️'}</span>
+                    <span style={{ fontSize:28 }}>{t.emoji || 'âœˆï¸'}</span>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontWeight:800, fontSize:14, color:'var(--t1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t.name}</div>
                       <div style={{ fontSize:12, color:'var(--t3)', marginTop:2 }}>
-                        📍 {t.destination || 'No destination'} · {t.startDate ? fmtDate(t.startDate) : 'No date'}
+                        ðŸ“ {t.destination || 'No destination'} Â· {t.startDate ? fmtDate(t.startDate) : 'No date'}
                       </div>
                     </div>
                     <button className="btn btn-sm btn-secondary" onClick={() => { setStatSheet(null); navigate(`/trip/${t.id}`); }} style={{ padding:'7px 12px', fontSize:12 }}>
@@ -449,11 +438,11 @@ export default function Profile() {
                 if (!allPins.length) return <div style={{ color:'var(--t3)', textAlign:'center', padding:20 }}>No map places pinned yet</div>;
                 return allPins.map(p => (
                   <div key={p.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', border:'1.5px solid var(--border)', borderRadius:16, background:'white', boxShadow:'var(--sh-xs)' }}>
-                    <div style={{ width:36, height:36, borderRadius:8, background:'var(--em-50)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📍</div>
+                    <div style={{ width:36, height:36, borderRadius:8, background:'var(--em-50)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>ðŸ“</div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontWeight:800, fontSize:14, color:'var(--t1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
                       <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>
-                        Trip: <strong>{p.tripName}</strong> {p.note && `· "${p.note}"`}
+                        Trip: <strong>{p.tripName}</strong> {p.note && `Â· "${p.note}"`}
                       </div>
                     </div>
                     <button className="btn btn-sm btn-secondary" onClick={() => { setStatSheet(null); navigate(`/trip/${p.tripId}`); }} style={{ padding:'7px 12px', fontSize:12 }}>
@@ -484,7 +473,7 @@ export default function Profile() {
         )}
       </BottomSheet>
 
-      {/* ── Achievements ── */}
+      {/* â”€â”€ Achievements â”€â”€ */}
       <div style={{ padding:'0 20px 24px' }}>
         <div style={{ fontWeight:800, fontSize:16, marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
           <Star size={18} color="var(--amber)" fill="var(--amber)" /> Achievements
@@ -496,17 +485,17 @@ export default function Profile() {
               <div key={a.name} style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 14px', background: unlocked ? 'var(--em-50)' : 'var(--g50)', border:`1.5px solid ${unlocked ? 'var(--em-100)' : 'var(--border)'}`, borderRadius:999, opacity: unlocked ? 1 : 0.42, transition:'all 300ms' }}>
                 <span style={{ fontSize:18 }}>{a.emoji}</span>
                 <span style={{ fontSize:12, fontWeight:700, color: unlocked ? '#065F46' : 'var(--t3)' }}>{a.name}</span>
-                {unlocked && <span style={{ fontSize:10, color:'var(--em)' }}>✓</span>}
+                {unlocked && <span style={{ fontSize:10, color:'var(--em)' }}>âœ“</span>}
               </div>
             );
           })}
         </div>
         {totalTrips === 0 && (
-          <div style={{ marginTop:12, fontSize:12, color:'var(--t3)', textAlign:'center' }}>Create your first trip to unlock achievements 🏆</div>
+          <div style={{ marginTop:12, fontSize:12, color:'var(--t3)', textAlign:'center' }}>Create your first trip to unlock achievements ðŸ†</div>
         )}
       </div>
 
-      {/* ── Trips list ── */}
+      {/* â”€â”€ Trips list â”€â”€ */}
       {trips.length > 0 && (
         <div style={{ padding:'0 20px 48px' }}>
           <div style={{ fontWeight:800, fontSize:16, marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
@@ -515,10 +504,10 @@ export default function Profile() {
           {trips.map((t, i) => (
             <motion.div key={t.id} initial={{ opacity:0, x:-10 }} animate={{ opacity:1, x:0 }} transition={{ delay: i * 0.06 }}
               style={{ display:'flex', alignItems:'center', gap:12, background:'white', border:'1.5px solid var(--border)', borderRadius:16, padding:'12px 14px', marginBottom:10, boxShadow:'var(--sh-xs)' }}>
-              <div style={{ fontSize:26, flexShrink:0 }}>{t.emoji || '✈️'}</div>
+              <div style={{ fontSize:26, flexShrink:0 }}>{t.emoji || 'âœˆï¸'}</div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontWeight:700, fontSize:14, color:'var(--t1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t.name}</div>
-                <div style={{ fontSize:12, color:'var(--t3)' }}>{t.destination || 'No destination'} · {(t.days||[]).length} days · {(t.highlights||[]).length} photos</div>
+                <div style={{ fontSize:12, color:'var(--t3)' }}>{t.destination || 'No destination'} Â· {(t.days||[]).length} days Â· {(t.highlights||[]).length} photos</div>
               </div>
               <span className={`badge ${t.status === 'completed' ? 's-completed' : t.status === 'upcoming' ? 's-upcoming' : t.status === 'ongoing' ? 's-ongoing' : 's-planning'}`} style={{ flexShrink:0 }}>
                 {((t.status||'planning').charAt(0).toUpperCase() + (t.status||'planning').slice(1))}
